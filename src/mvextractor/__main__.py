@@ -32,6 +32,10 @@ def main(args=None):
     parser.add_argument('-v', '--verbose', action='store_true', help='show detailled text output')
     parser.add_argument('-d', '--dump', nargs='?', const=True,
         help='dump frames, motion vectors, frame types, and timestamps to optionally specified output directory')
+    parser.add_argument('--motion-vectors-only', action='store_true', 
+        help='extract only motion vectors and metadata (optimized for performance)')
+    parser.add_argument('--lightweight', action='store_true', 
+        help='lightweight mode: skip frame processing, only extract motion vectors')
     args = parser.parse_args()
 
     if args.dump:
@@ -43,6 +47,12 @@ def main(args=None):
             os.makedirs(os.path.join(dumpdir, child), exist_ok=True)
 
     cap = VideoCap()
+
+    # Set extraction mode based on arguments
+    if args.motion_vectors_only or args.lightweight:
+        cap.setExtractionMode(extract_frames=False, lightweight_mode=args.lightweight)
+        if args.verbose:
+            print("Optimized mode: extracting motion vectors only")
 
     # open the video file
     ret = cap.open(args.video_url)
@@ -64,7 +74,10 @@ def main(args=None):
         tstart = time.perf_counter()
 
         # read next video frame and corresponding motion vectors
-        ret, frame, motion_vectors, frame_type, timestamp = cap.read()
+        if args.motion_vectors_only or args.lightweight:
+            ret, frame, motion_vectors, frame_type, timestamp = cap.readMotionVectorsOnly()
+        else:
+            ret, frame, motion_vectors, frame_type, timestamp = cap.read()
 
         tend = time.perf_counter()
         telapsed = tend - tstart
@@ -81,15 +94,21 @@ def main(args=None):
             print("timestamp: {} | ".format(timestamp), end=" ")
             print("frame type: {} | ".format(frame_type), end=" ")
 
-            print("frame size: {} | ".format(np.shape(frame)), end=" ")
+            if frame is not None:
+                print("frame size: {} | ".format(np.shape(frame)), end=" ")
+            else:
+                print("frame size: None | ", end=" ")
             print("motion vectors: {} | ".format(np.shape(motion_vectors)), end=" ")
             print("elapsed time: {} s".format(telapsed))
 
-        frame = draw_motion_vectors(frame, motion_vectors)
+        # Only process frames if not in lightweight mode
+        if not args.lightweight and frame is not None:
+            frame = draw_motion_vectors(frame, motion_vectors)
 
         # store motion vectors, frames, etc. in output directory
         if args.dump:
-            cv2.imwrite(os.path.join(dumpdir, "frames", f"frame-{step}.jpg"), frame)
+            if frame is not None:
+                cv2.imwrite(os.path.join(dumpdir, "frames", f"frame-{step}.jpg"), frame)
             np.save(os.path.join(dumpdir, "motion_vectors", f"mvs-{step}.npy"), motion_vectors)
             with open(os.path.join(dumpdir, "timestamps.txt"), "a") as f:
                 f.write(str(timestamp)+"\n")
@@ -98,7 +117,7 @@ def main(args=None):
 
         step += 1
 
-        if args.preview:
+        if args.preview and frame is not None:
             cv2.imshow("Frame", frame)
 
             # if user presses "q" key stop program

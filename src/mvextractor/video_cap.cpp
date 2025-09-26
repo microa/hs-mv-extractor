@@ -13,6 +13,8 @@ VideoCap::VideoCap() {
     this->frame_number = 0;
     this->frame_timestamp = 0.0;
     this->is_rtsp = false;
+    this->extract_frames = true;  // Default: extract frames
+    this->lightweight_mode = false;  // Default: full processing
 
     memset(&(this->rgb_frame), 0, sizeof(this->rgb_frame));
     memset(&(this->picture), 0, sizeof(this->picture));
@@ -160,6 +162,12 @@ error:
 }
 
 
+void VideoCap::setExtractionMode(bool extract_frames, bool lightweight_mode) {
+    this->extract_frames = extract_frames;
+    this->lightweight_mode = lightweight_mode;
+}
+
+
 bool VideoCap::grab(void) {
 
     bool valid = false;
@@ -254,10 +262,21 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
     if (!this->video_stream || !(this->frame->data[0]))
         return false;
 
-    if (this->img_convert_ctx == NULL ||
-        this->picture.width != this->video_dec_ctx->width ||
-        this->picture.height != this->video_dec_ctx->height ||
-        this->picture.data == NULL) {
+    // If in lightweight mode, skip all frame processing
+    if (this->lightweight_mode) {
+        *frame = NULL;
+        *width = 0;
+        *height = 0;
+        *step = 0;
+        *cn = 0;
+    }
+
+    // Only process frames if not in lightweight mode and frame extraction is enabled
+    if (!this->lightweight_mode && this->extract_frames && 
+        (this->img_convert_ctx == NULL ||
+         this->picture.width != this->video_dec_ctx->width ||
+         this->picture.height != this->video_dec_ctx->height ||
+         this->picture.data == NULL)) {
 
         // Some sws_scale optimizations have some assumptions about alignment of data/step/width/height
         // Also we use coded_width/height to workaround problem with legacy ffmpeg versions (like n0.8)
@@ -291,21 +310,27 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
         this->picture.cn = 3;
     }
 
-    // change color space of frame
-    sws_scale(
-        this->img_convert_ctx,
-        this->frame->data,
-        this->frame->linesize,
-        0, this->video_dec_ctx->coded_height,
-        this->rgb_frame.data,
-        this->rgb_frame.linesize
-        );
+    // Only perform color space conversion if frame extraction is enabled
+    if (!this->lightweight_mode && this->extract_frames) {
+        // change color space of frame
+        sws_scale(
+            this->img_convert_ctx,
+            this->frame->data,
+            this->frame->linesize,
+            0, this->video_dec_ctx->coded_height,
+            this->rgb_frame.data,
+            this->rgb_frame.linesize
+            );
+    }
 
-    *frame = this->picture.data;
-    *width = this->picture.width;
-    *height = this->picture.height;
-    *step = this->picture.step;
-    *cn = this->picture.cn;
+    // Set frame data only if frame extraction is enabled
+    if (!this->lightweight_mode && this->extract_frames) {
+        *frame = this->picture.data;
+        *width = this->picture.width;
+        *height = this->picture.height;
+        *step = this->picture.step;
+        *cn = this->picture.cn;
+    }
 
     // get motion vectors
     AVFrameSideData *sd = av_frame_get_side_data(this->frame, AV_FRAME_DATA_MOTION_VECTORS);
@@ -353,6 +378,53 @@ bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn
     if (ret)
         ret = this->retrieve(frame, step, width, height, cn, frame_type, motion_vectors, num_mvs, frame_timestamp);
     return ret;
+}
+
+
+bool VideoCap::readMotionVectorsOnly(char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+    if (!this->video_stream || !(this->frame->data[0]))
+        return false;
+
+    // Skip all frame processing - only extract motion vectors and metadata
+    *motion_vectors = NULL;
+    *num_mvs = 0;
+
+    // get motion vectors
+    AVFrameSideData *sd = av_frame_get_side_data(this->frame, AV_FRAME_DATA_MOTION_VECTORS);
+    if (sd) {
+        AVMotionVector *mvs = (AVMotionVector *)sd->data;
+
+        *num_mvs = sd->size / sizeof(*mvs);
+
+        if (*num_mvs > 0) {
+            // allocate memory for motion vectors as 1D array
+            if (!(*motion_vectors = (MVS_DTYPE *) malloc(*num_mvs * 10 * sizeof(MVS_DTYPE))))
+                return false;
+
+            // store the motion vectors in the allocated memory (C contiguous)
+            for (MVS_DTYPE i = 0; i < *num_mvs; ++i) {
+                *(*motion_vectors + i*10     ) = static_cast<MVS_DTYPE>(mvs[i].source);
+                *(*motion_vectors + i*10 +  1) = static_cast<MVS_DTYPE>(mvs[i].w);
+                *(*motion_vectors + i*10 +  2) = static_cast<MVS_DTYPE>(mvs[i].h);
+                *(*motion_vectors + i*10 +  3) = static_cast<MVS_DTYPE>(mvs[i].src_x);
+                *(*motion_vectors + i*10 +  4) = static_cast<MVS_DTYPE>(mvs[i].src_y);
+                *(*motion_vectors + i*10 +  5) = static_cast<MVS_DTYPE>(mvs[i].dst_x);
+                *(*motion_vectors + i*10 +  6) = static_cast<MVS_DTYPE>(mvs[i].dst_y);
+                *(*motion_vectors + i*10 +  7) = static_cast<MVS_DTYPE>(mvs[i].motion_x);
+                *(*motion_vectors + i*10 +  8) = static_cast<MVS_DTYPE>(mvs[i].motion_y);
+                *(*motion_vectors + i*10 +  9) = static_cast<MVS_DTYPE>(mvs[i].motion_scale);
+            }
+        }
+    }
+
+    // get frame type (I, P, B, etc.) and create a null terminated c-string
+    frame_type[0] = av_get_picture_type_char(this->frame->pict_type);
+    frame_type[1] = '\0';
+
+    // return the timestamp which was computed previously in grab()
+    *frame_timestamp = this->frame_timestamp;
+
+    return true;
 }
 
 

@@ -69,6 +69,8 @@ private:
     int64_t frame_number;
     double frame_timestamp;
     bool is_rtsp;
+    bool extract_frames;  // New: flag to control frame extraction
+    bool lightweight_mode;  // New: flag for metadata-only extraction
 #if USE_AV_INTERRUPT_CALLBACK
     AVInterruptCallbackMetadata interrupt_metadata;
 #endif
@@ -107,6 +109,13 @@ public:
     *     otherwise.
     */
     bool open(const char *url);
+
+    /** Set extraction mode for optimization
+    *
+    * @param extract_frames If true, decode and return video frames. If false, skip frame decoding.
+    * @param lightweight_mode If true, only extract motion vectors and metadata, skip all frame processing.
+    */
+    void setExtractionMode(bool extract_frames, bool lightweight_mode = false);
 
     /** Reads the next video frame and motion vectors from the stream
     *
@@ -193,4 +202,17 @@ public:
     *   The parameters and return value correspond to the `retrieve` method.
     */
     bool read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp);
+
+    /** Extract only motion vectors and metadata (optimized for performance)
+    *
+    * This method skips frame decoding and color space conversion for maximum performance
+    * when only motion vectors are needed.
+    *
+    * @param frame_type Frame type (I/P/B)
+    * @param motion_vectors Motion vectors array
+    * @param num_mvs Number of motion vectors
+    * @param frame_timestamp Frame timestamp
+    * @retval true if motion vectors could be extracted successfully, false otherwise
+    */
+    bool readMotionVectorsOnly(char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp);
 };

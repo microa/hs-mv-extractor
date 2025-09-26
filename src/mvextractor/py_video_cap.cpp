@@ -134,6 +134,42 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 
 
 static PyObject *
+VideoCap_setExtractionMode(VideoCapObject *self, PyObject *args)
+{
+    int extract_frames, lightweight_mode = 0;
+    
+    if (!PyArg_ParseTuple(args, "i|i", &extract_frames, &lightweight_mode))
+        return NULL;
+    
+    self->vcap.setExtractionMode(extract_frames != 0, lightweight_mode != 0);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject *
+VideoCap_readMotionVectorsOnly(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
+{
+    MVS_DTYPE *motion_vectors = NULL;
+    MVS_DTYPE num_mvs = 0;
+    char frame_type[2] = "?";
+    double frame_timestamp = 0;
+
+    if (!self->vcap.readMotionVectorsOnly(frame_type, &motion_vectors, &num_mvs, &frame_timestamp)) {
+        num_mvs = 0;
+        frame_timestamp = 0;
+        return Py_BuildValue("(ONNsd)", Py_False, Py_None, Py_None, (const char*)frame_type, frame_timestamp);
+    }
+
+    // convert motion vector buffer into numpy array
+    npy_intp dims_mvs[2] = {(npy_intp)num_mvs, 10};
+    PyObject *motion_vectors_nd = PyArray_SimpleNewFromData(2, dims_mvs, MVS_DTYPE_NP, motion_vectors);
+    PyArray_ENABLEFLAGS((PyArrayObject*)motion_vectors_nd, NPY_ARRAY_OWNDATA);
+
+    return Py_BuildValue("(ONNsd)", Py_True, Py_None, motion_vectors_nd, (const char*)frame_type, frame_timestamp);
+}
+
+
+static PyObject *
 VideoCap_release(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 {
     self->vcap.release();
@@ -146,6 +182,8 @@ static PyMethodDef VideoCap_methods[] = {
     {"read", (PyCFunction) VideoCap_read, METH_NOARGS, "Grab and decode the next frame and motion vectors"},
     {"grab", (PyCFunction) VideoCap_grab, METH_NOARGS, "Grab the next frame and motion vectors from the stream"},
     {"retrieve", (PyCFunction) VideoCap_retrieve, METH_NOARGS, "Decode the grabbed frame and motion vectors"},
+    {"setExtractionMode", (PyCFunction) VideoCap_setExtractionMode, METH_VARARGS, "Set extraction mode for optimization"},
+    {"readMotionVectorsOnly", (PyCFunction) VideoCap_readMotionVectorsOnly, METH_NOARGS, "Extract only motion vectors and metadata (optimized)"},
     {"release", (PyCFunction) VideoCap_release, METH_NOARGS, "Release the video device and free ressources"},
     {NULL}  /* Sentinel */
 };
