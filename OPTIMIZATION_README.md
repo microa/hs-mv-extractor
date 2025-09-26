@@ -71,8 +71,8 @@ extract_mvs video.mp4 --lightweight --dump
 ### Expected Performance Gains
 
 - **CPU Usage**: 40-60% reduction in CPU usage
-- **Memory Usage**: 70-80% reduction in memory allocation
-- **Processing Speed**: 2-3x faster for motion-vector-only extraction
+- **Memory Usage**: 70-80% memory reduction in memory allocation
+- **Processing Speed**: 2-3x faster processing for motion-vector-only extraction
 - **I/O Efficiency**: No unnecessary frame file writes
 
 ### Benchmark Results
