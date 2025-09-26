@@ -1,0 +1,23 @@
+{
+  "original": {
+    "time": 0.16127467155456543,
+    "fps": 310.0300841913857,
+    "memory": 136314880.0
+  },
+  "optimized": {
+    "time": 0.029814481735229492,
+    "fps": 1677.0373687535487,
+    "memory": 5242880.0
+  },
+  "lightweight": {
+    "time": 0.008027315139770508,
+    "fps": 6228.732662092726,
+    "memory": 524288.0
+  },
+  "improvements": {
+    "opt_speedup": 5.409273016609223,
+    "light_speedup": 20.090736285603967,
+    "opt_memory_reduction": 96.15384615384616,
+    "light_memory_reduction": 99.61538461538461
+  }
+}
