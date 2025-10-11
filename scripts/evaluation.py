@@ -6,7 +6,7 @@ import numpy as np
 # 使用相对路径，更便携
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
-LOCAL_SRC = os.path.join(project_root, 'hs-mv-extractor', 'src')
+LOCAL_SRC = os.path.join(project_root, 'src')
 
 WARMUP_FRAMES = 3  # RAM-only 统计剔除冷启动
 

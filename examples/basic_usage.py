@@ -16,7 +16,7 @@ import numpy as np
 
 # Add the project root to the path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(project_root, 'hs-mv-extractor', 'src'))
+sys.path.insert(0, os.path.join(project_root, 'src'))
 
 try:
     from mvextractor import VideoCap
