@@ -5,14 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [2.0.0] - 2024-01-15
 
 ### 🚀 Major Performance Improvements
-- **13-15x faster** motion vector extraction with MVO-only mode
-- **13-15x faster** end-to-end processing
+- **117x faster** RAM processing with MVO-only mode
+- **74.8x faster** end-to-end processing with MVO-only mode
 - **50%+ reduced** memory usage in MVO mode
-- **43% storage reduction** - only motion vectors, no frame data
+- **48% storage reduction** - only motion vectors, no frame data
 - **Optimized** file I/O for motion vector data
 
 ### ✨ New Features
-- **Motion Vectors Only (MVO) mode** for maximum performance
+- **MVO (Motion Vectors Only) mode** for maximum performance
 - **Dual backend support** - original and enhanced methods
 - **Comprehensive performance evaluation** tools
 - **Built-in benchmarking** and comparison utilities

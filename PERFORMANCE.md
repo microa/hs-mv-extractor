@@ -13,46 +13,46 @@ This document contains the actual performance test results from our evaluation s
 
 ### Performance Comparison
 
-| Metric | Original (Full Decode) | Enhanced (MVO-only) | Speedup |
-|--------|------------------------|---------------------|---------|
-| **RAM Processing** | 0.41s | 0.03s | **13.2x** |
-| **End-to-End** | 0.94s | 0.06s | **15.0x** |
+| Metric | FULL (Full Decode) | MVO (MVO-only) | Speedup |
+|--------|---------------------|-----------------|---------|
+| **RAM Processing** | 3.77s | 0.032s | **117x** |
+| **End-to-End** | 4.39s | 0.059s | **74.8x** |
 | **Memory Usage** | Full frames + MVs | Motion vectors only | **50%+** |
-| **Storage** | 38MB MVs + 29MB frames | 38MB MVs only | **43%** |
+| **Storage** | 38MB MVs + 35MB frames | 38MB MVs only | **48%** |
 
 ### Detailed Test Results
 
-#### Method A: Enhanced MVO-only Mode
+#### MVO: Enhanced MVO-only Mode
 ```json
 {
-  "ram_only_time_sec": 0.03,
-  "e2e_time_sec": 0.06,
+  "ram_only_time_sec": 0.0329,
+  "e2e_time_sec": 0.0602,
   "mv_files_written": 300,
   "frame_files_written": 0,
-  "e2e_mv_bytes": 38042200,
+  "e2e_mv_bytes": 38170840,
   "e2e_frame_bytes": 0,
   "mvo_effective": true
 }
 ```
 
-#### Method B: Original Full Decode Mode
+#### FULL: Original Full Decode Mode
 ```json
 {
-  "ram_only_time_sec": 0.41,
-  "e2e_time_sec": 0.94,
+  "ram_only_time_sec": 3.846,
+  "e2e_time_sec": 4.502,
   "mv_files_written": 300,
   "frame_files_written": 300,
-  "e2e_mv_bytes": 38042200,
-  "e2e_frame_bytes": 28702662,
+  "e2e_mv_bytes": 38170840,
+  "e2e_frame_bytes": 34623049,
   "mvo_effective": false
 }
 ```
 
 ### Key Performance Insights
 
-1. **Exceptional Speedup**: 13-15x performance improvement
+1. **Exceptional Speedup**: 117x RAM processing, 74.8x end-to-end performance improvement
 2. **Memory Efficiency**: 50%+ memory reduction in MVO mode
-3. **Storage Optimization**: 43% storage reduction (motion vectors only)
+3. **Storage Optimization**: 48% storage reduction (motion vectors only)
 4. **Zero Frame Decoding**: MVO mode skips frame decoding entirely
 5. **Consistent Performance**: Results are consistent across multiple test runs
 
