@@ -18,7 +18,6 @@ mvextractor = Extension('mvextractor.videocap',
     sources = [
         'src/mvextractor/py_video_cap.cpp',
         'src/mvextractor/video_cap.cpp',
-        'src/mvextractor/time_cvt.cpp',
         'src/mvextractor/mat_to_ndarray.cpp'
     ],
     extra_compile_args = ['-std=c++11'],

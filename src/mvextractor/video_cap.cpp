@@ -11,8 +11,6 @@ VideoCap::VideoCap() {
     this->frame = NULL;
     this->img_convert_ctx = NULL;
     this->frame_number = 0;
-    this->frame_timestamp = 0.0;
-    this->is_rtsp = false;
 
     memset(&(this->rgb_frame), 0, sizeof(this->rgb_frame));
     memset(&(this->picture), 0, sizeof(this->picture));
@@ -62,8 +60,6 @@ void VideoCap::release(void) {
     this->video_stream = NULL;
     this->video_stream_idx = -1;
     this->frame_number = 0;
-    this->frame_timestamp = 0.0;
-    this->is_rtsp = false;
 }
 
 
@@ -86,9 +82,6 @@ bool VideoCap::open(const char *url) {
     av_dict_set(&(this->opts), "stimeout", "5000000", 0); // set timeout to 5 seconds
     if (avformat_open_input(&(this->fmt_ctx), url, NULL, &(this->opts)) < 0)
         goto error;
-
-    // determine if opened stream is RTSP or not (e.g. a video file)
-    this->is_rtsp = check_format_rtsp(this->fmt_ctx->iformat->name);
 
     // read packets of a media file to get stream information.
     if (avformat_find_stream_info(this->fmt_ctx, NULL) < 0)
@@ -200,39 +193,6 @@ bool VideoCap::grab(void) {
         avcodec_decode_video2(this->video_dec_ctx, this->frame, &got_frame, &(this->packet));
 
         if(got_frame) {
-#ifdef DEBUG
-            // get timestamps of packet from RTPS stream
-            std::cerr << "### Frame No. " <<  this->frame_number << " ###" << std::endl;
-            std::cerr << "synced: " << packet.synced << std::endl;
-            std::cerr << "seq: " << packet.seq << std::endl;
-            std::cerr << "timestamp: " << packet.timestamp << std::endl;
-            std::cerr << "last_rtcp_ntp_time (NTP): " << packet.last_rtcp_ntp_time << std::endl;
-            struct timeval last_rtcp_ntp_time_unix;
-            ntp2tv(&packet.last_rtcp_ntp_time, &last_rtcp_ntp_time_unix);
-            std::cerr << "last_rtcp_ntp_time (UNIX): ";
-            printf("%ld.%06ld\n", last_rtcp_ntp_time_unix.tv_sec, last_rtcp_ntp_time_unix.tv_usec);
-            std::cerr << "last_rtcp_timestamp: " << packet.last_rtcp_timestamp << std::endl;
-#endif
-
-            // wait for the first RTCP sender report containing RTP timestamp <-> NTP walltime mapping,
-            // before this no reliable frame timestmap can be computed
-            if (this->is_rtsp && packet.synced) {
-                // compute absolute UNIX timestamp for each frame as follows (90 kHz clock as in RTP spec):
-                // frame_time_unix = last_rtcp_ntp_time_unix + (timestamp - last_rtcp_timestamp) / 90000
-                struct timeval tv;
-                ntp2tv(&packet.last_rtcp_ntp_time, &tv);
-                double rtp_diff = (double)(packet.timestamp - packet.last_rtcp_timestamp) / 90000.0;
-                this->frame_timestamp = (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0 + rtp_diff;
-#ifdef DEBUG
-                std::cerr << "frame_timestamp (UNIX): " << std::fixed << this->frame_timestamp << std::endl;
-#endif
-            }
-            // if no RTSP is used or no RTP timestamp <-> NTP walltime mapping is received, make timestamp from local system time
-            else {
-                auto now = std::chrono::system_clock::now();
-                this->frame_timestamp = std::chrono::duration<double>(now.time_since_epoch()).count();
-            }
-
             this->frame_number++;
             valid = true;
 
@@ -249,7 +209,7 @@ bool VideoCap::grab(void) {
 }
 
 
-bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs) {
 
     if (!this->video_stream || !(this->frame->data[0]))
         return false;
@@ -341,35 +301,13 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
     frame_type[0] = av_get_picture_type_char(this->frame->pict_type);
     frame_type[1] = '\0';
 
-    // return the timestamp which was computed previously in grab()
-    *frame_timestamp = this->frame_timestamp;
-
     return true;
 }
 
 
-bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp) {
+bool VideoCap::read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs) {
     bool ret = this->grab();
     if (ret)
-        ret = this->retrieve(frame, step, width, height, cn, frame_type, motion_vectors, num_mvs, frame_timestamp);
+        ret = this->retrieve(frame, step, width, height, cn, frame_type, motion_vectors, num_mvs);
     return ret;
-}
-
-
-// Returns true if the comma-separated list of format names contains "rtsp"
-bool VideoCap::check_format_rtsp(const char *format_names) {
-
-    char str[strlen(format_names) + 1];
-    strcpy(str, format_names);
-
-    char *format_name;
-    char *buffer = str;
-
-    while ((format_name = strtok_r(buffer, ",", &buffer))) {
-
-        if (strcmp(format_name, "rtsp") == 0)
-            return true;
-    }
-
-    return false;
 }
