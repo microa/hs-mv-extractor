@@ -15,7 +15,7 @@ RUN yum update -y && \
   yum clean all
 
 # Install OpenCV
-ARG OPENCV_VERSION="4.10.0"
+ARG OPENCV_VERSION="4.12.0"
 WORKDIR /opt
 RUN wget -O opencv.zip https://github.com/opencv/opencv/archive/"$OPENCV_VERSION".zip && \
   unzip opencv.zip && \
