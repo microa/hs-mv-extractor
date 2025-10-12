@@ -3,16 +3,16 @@ import os, sys, time, json, glob, shutil, importlib
 import numpy as np
 import cv2
 
-# === 你本地扩展源码路径（确保这里是含有 mvextractor 的 src 目录） ===
-# 使用相对路径，更便携
+# === Local extension source path (ensure this contains mvextractor src directory) ===
+# Using relative paths for better portability
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
 LOCAL_SRC = os.path.join(project_root, 'src')
 
-WARMUP_FRAMES = 3  # RAM-only 统计剔除冷启动
+WARMUP_FRAMES = 3  # Remove cold start frames from RAM-only statistics
 
 def _draw_motion_vectors(frame, motion_vectors):
-    """在帧上绘制运动向量（原版 LukasBommes/mv-extractor 功能）"""
+    """Draw motion vectors on frame (original LukasBommes/mv-extractor functionality)"""
     if len(motion_vectors) > 0:
         num_mvs = np.shape(motion_vectors)[0]
         shift = 2
@@ -29,7 +29,7 @@ def _ensure_dir_clean(d):
     os.makedirs(d, exist_ok=True)
 
 def _zap_mv_modules():
-    """从 sys.modules 清理 mvextractor 相关项，保证下一次 import 用新的后端。"""
+    """Clean mvextractor related items from sys.modules to ensure next import uses new backend."""
     for k in list(sys.modules.keys()):
         if k == 'mvextractor' or k.startswith('mvextractor.'):
             del sys.modules[k]
@@ -37,22 +37,22 @@ def _zap_mv_modules():
 
 def _import_videocap(force_local: bool):
     """
-    force_local=True  -> A：强制本地扩展（把 LOCAL_SRC 放到 sys.path 最前）
-    force_local=False -> B：强制 PyPI/系统安装的包（从 sys.path 移除 LOCAL_SRC）
+    force_local=True  -> A: Force local extension (put LOCAL_SRC at front of sys.path)
+    force_local=False -> B: Force PyPI/system installed package (remove LOCAL_SRC from sys.path)
     """
-    # 准备 sys.path
+    # Prepare sys.path
     abs_local = os.path.abspath(LOCAL_SRC)
     sys.path = [p for p in sys.path if os.path.abspath(p) != abs_local]
     if force_local:
         sys.path.insert(0, abs_local)
 
-    _zap_mv_modules()  # 清理已加载模块再导入
+    _zap_mv_modules()  # Clean loaded modules before importing
     from mvextractor.videocap import VideoCap
     import mvextractor as _mv
     return VideoCap, _mv.__file__
 
 def _maybe_set_mvo(cap, on: bool) -> bool:
-    """尝试启用/关闭 MVO-only；返回是否存在该 API。"""
+    """Try to enable/disable MVO-only; returns whether the API exists."""
     for name in ("set_motion_vectors_only", "setMotionVectorsOnly"):
         fn = getattr(cap, name, None)
         if callable(fn):
@@ -61,7 +61,7 @@ def _maybe_set_mvo(cap, on: bool) -> bool:
     return False
 
 def _bench_mem_only(video_path, n_frames, want_mvo: bool, force_local: bool):
-    """只测内存阶段：包含运动向量可视化，但不保存到文件。"""
+    """Test memory-only phase: includes motion vector visualization but doesn't save to files."""
     VideoCap, impl_path = _import_videocap(force_local)
     cap = VideoCap()
     if not cap.open(video_path):
@@ -69,7 +69,7 @@ def _bench_mem_only(video_path, n_frames, want_mvo: bool, force_local: bool):
 
     api_present = _maybe_set_mvo(cap, want_mvo)
 
-    # 跳过WARMUP帧，与E2E测试保持一致
+    # Skip WARMUP frames to match E2E test
     for _ in range(WARMUP_FRAMES):
         ret, _, _, _, _ = cap.read()
         if not ret:
@@ -78,15 +78,15 @@ def _bench_mem_only(video_path, n_frames, want_mvo: bool, force_local: bool):
     frames = 0
     total_mvs = 0
     nonempty = 0
-    t0 = time.perf_counter()  # 开始计时
+    t0 = time.perf_counter()  # Start timing
 
     while frames < n_frames:
         ret, frame, mvs, ftype, ts = cap.read()
         if not ret:
             break
         
-        # 在内存中处理运动向量可视化（包含在计时内）
-        # 注意：A模式（MVO）不执行可视化，B模式（Full）执行可视化
+        # Process motion vector visualization in memory (included in timing)
+        # Note: A mode (MVO) doesn't execute visualization, B mode (Full) executes visualization
         if not want_mvo and getattr(frame, "size", 0) > 0:
             frame_with_vectors = _draw_motion_vectors(frame, mvs)
         
@@ -95,7 +95,7 @@ def _bench_mem_only(video_path, n_frames, want_mvo: bool, force_local: bool):
         total_mvs += int(np.shape(mvs)[0])
         frames += 1
 
-    t1 = time.perf_counter()  # 结束计时
+    t1 = time.perf_counter()  # End timing
 
     cap.release()
     counted = frames
@@ -111,16 +111,16 @@ def _bench_mem_only(video_path, n_frames, want_mvo: bool, force_local: bool):
         "counted_frames": counted,
         "ram_only_time_sec": float(t1 - t0),
         "ram_avg_dt_sec": float((t1 - t0) / counted) if counted else None,
-        "ram_median_dt_sec": None,  # 整体计时，无中位数
+        "ram_median_dt_sec": None,  # Overall timing, no median
         "ram_nonempty_frame_ratio": nonempty_ratio,
         "ram_avg_mvs_per_frame": (total_mvs / counted) if counted else 0.0,
     }
 
 def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_local: bool):
     """
-    端到端：从建目录 + open 到全部写完 + release。
-    - A (want_mvo=True, force_local=True)：只写 MV（.npy） -> out_dir/MotionVectors
-    - B (want_mvo=False, force_local=False)：写 MV（.npy） + 写帧（.jpg） -> out_dir/MotionVectors, out_dir/Frames
+    End-to-end: from directory creation + open to all files written + release.
+    - A (want_mvo=True, force_local=True): Only write MV (.npy) -> out_dir/MotionVectors
+    - B (want_mvo=False, force_local=False): Write MV (.npy) + write frames (.jpg) -> out_dir/MotionVectors, out_dir/Frames
     """
     _ensure_dir_clean(out_dir)
     mv_dir = os.path.join(out_dir, "MotionVectors")
@@ -135,9 +135,9 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
             cv2 = _cv2
             os.makedirs(frames_dir, exist_ok=True)
         except Exception:
-            write_frames = False  # 没有 cv2 时仅写 MV
+            write_frames = False  # Only write MV when cv2 is not available
 
-    # 保存帧类型和时间戳（完整模式）
+    # Save frame types and timestamps (full mode)
     frame_types = []
     timestamps = []
 
@@ -148,7 +148,7 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
 
     api_present = _maybe_set_mvo(cap, want_mvo)
 
-    # 跳过WARMUP帧，与RAM测试保持一致
+    # Skip WARMUP frames to match RAM test
     for _ in range(WARMUP_FRAMES):
         ret, _, _, _, _ = cap.read()
         if not ret:
@@ -157,14 +157,14 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
     frames = 0
     mv_bytes = 0
     frame_bytes = 0
-    t0 = time.perf_counter()  # 开始计时
+    t0 = time.perf_counter()  # Start timing
 
     while frames < n_frames:
         ret, frame, mvs, ftype, ts = cap.read()
         if not ret:
             break
 
-        # 写 MV（每帧一个文件，原版格式）
+        # Write MV (one file per frame, original format)
         mv_path = os.path.join(mv_dir, f"{frames:06d}.npy")
         np.save(mv_path, mvs, allow_pickle=False)
         try:
@@ -172,9 +172,9 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
         except FileNotFoundError:
             pass
 
-        # 写帧（仅 B）- 包含运动向量可视化
+        # Write frames (only B) - includes motion vector visualization
         if write_frames and getattr(frame, "size", 0) > 0:
-            # 在帧上绘制运动向量（原版功能）
+            # Draw motion vectors on frame (original functionality)
             frame_with_vectors = _draw_motion_vectors(frame, mvs)
             jpg_path = os.path.join(frames_dir, f"{frames:06d}.jpg")
             cv2.imwrite(jpg_path, frame_with_vectors, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
@@ -183,8 +183,8 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
             except FileNotFoundError:
                 pass
 
-        # 保存帧类型和时间戳（完整模式）
-        if not want_mvo:  # 仅在完整模式下保存
+        # Save frame types and timestamps (full mode)
+        if not want_mvo:  # Only save in full mode
             frame_types.append(ftype)
             timestamps.append(ts)
 
@@ -193,7 +193,7 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
     cap.release()
     t1 = time.perf_counter()
 
-    # 保存帧类型和时间戳文件（完整模式）
+    # Save frame types and timestamps files (full mode)
     if not want_mvo and frame_types and timestamps:
         frame_types_path = os.path.join(out_dir, "frame_types.txt")
         timestamps_path = os.path.join(out_dir, "timestamps.txt")
@@ -224,17 +224,17 @@ def _bench_e2e_with_dump(video_path, n_frames, out_dir, want_mvo: bool, force_lo
 
 def real_test(input_video: str, output_dir: str, test_frames: int):
     """
-    MVO = 你的本地扩展（强制从 LOCAL_SRC 导入）+ MVO-only
-    FULL = PyPI/系统安装版（移除 LOCAL_SRC）+ Full decode（写帧）
+    MVO = Your local extension (forced import from LOCAL_SRC) + MVO-only
+    FULL = PyPI/system installed version (remove LOCAL_SRC) + Full decode (write frames)
     """
-    # --- MVO: 本地扩展 + MVO-only ---
+    # --- MVO: Local extension + MVO-only ---
     mvo_mem = _bench_mem_only(input_video, test_frames, want_mvo=True,  force_local=True)
     mvo_e2e = _bench_e2e_with_dump(
         input_video, test_frames, os.path.join(output_dir, "MVO"),
         want_mvo=True, force_local=True
     )
 
-    # --- FULL: PyPI 版 + Full decode ---
+    # --- FULL: PyPI version + Full decode ---
     full_mem = _bench_mem_only(input_video, test_frames, want_mvo=False, force_local=False)
     full_e2e = _bench_e2e_with_dump(
         input_video, test_frames, os.path.join(output_dir, "FULL"),
