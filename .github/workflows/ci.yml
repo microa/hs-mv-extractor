@@ -87,50 +87,43 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # - os: ubuntu-latest
-        #   python: 39
-        #   bitness: 64
-        #   platform_id: manylinux_x86_64
-        #   manylinux_image: mv-extractor:local
-        #   numpy_min_version: "numpy==1.19.3"
-        #   opencv_min_version: "opencv-python==4.4.0.46"
-        # - os: ubuntu-latest
-        #   python: 310
-        #   bitness: 64
-        #   platform_id: manylinux_x86_64
-        #   manylinux_image: mv-extractor:local
-        #   numpy_min_version: "numpy==1.21.2"
-        #   opencv_min_version: "opencv-python==4.5.4.60"
-        # - os: ubuntu-latest
-        #   python: 311
-        #   bitness: 64
-        #   platform_id: manylinux_x86_64
-        #   manylinux_image: mv-extractor:local
-        #   numpy_min_version: "numpy==1.23.3"
-        #   opencv_min_version: "opencv-python==4.7.0.72"
-        # - os: ubuntu-latest
-        #   python: 312
-        #   bitness: 64
-        #   platform_id: manylinux_x86_64
-        #   manylinux_image: mv-extractor:local
-        #   numpy_min_version: "numpy==1.26.0"
-        #   opencv_min_version: "opencv-python==4.9.0.80"
-        # - os: ubuntu-latest
-        #   python: 313
-        #   bitness: 64
-        #   platform_id: manylinux_x86_64
-        #   manylinux_image: mv-extractor:local
-        #   numpy_min_version: "numpy==2.2.6"
-        #   opencv_min_version: "opencv-python==4.12.0.88"
-        # - os: ubuntu-latest
-        #   python: 314
-        #   bitness: 64
-        #   platform_id: manylinux_x86_64
-        #   manylinux_image: mv-extractor:local
-        #   numpy_min_version: "numpy==2.2.6"
-        #   opencv_min_version: "opencv-python==4.12.0.88"
         - os: ubuntu-latest
-          python: 315
+          python: 39
+          bitness: 64
+          platform_id: manylinux_x86_64
+          manylinux_image: mv-extractor:local
+          numpy_min_version: "numpy==1.19.3"
+          opencv_min_version: "opencv-python==4.4.0.46"
+        - os: ubuntu-latest
+          python: 310
+          bitness: 64
+          platform_id: manylinux_x86_64
+          manylinux_image: mv-extractor:local
+          numpy_min_version: "numpy==1.21.2"
+          opencv_min_version: "opencv-python==4.5.4.60"
+        - os: ubuntu-latest
+          python: 311
+          bitness: 64
+          platform_id: manylinux_x86_64
+          manylinux_image: mv-extractor:local
+          numpy_min_version: "numpy==1.23.3"
+          opencv_min_version: "opencv-python==4.7.0.72"
+        - os: ubuntu-latest
+          python: 312
+          bitness: 64
+          platform_id: manylinux_x86_64
+          manylinux_image: mv-extractor:local
+          numpy_min_version: "numpy==1.26.0"
+          opencv_min_version: "opencv-python==4.9.0.80"
+        - os: ubuntu-latest
+          python: 313
+          bitness: 64
+          platform_id: manylinux_x86_64
+          manylinux_image: mv-extractor:local
+          numpy_min_version: "numpy==2.2.6"
+          opencv_min_version: "opencv-python==4.12.0.88"
+        - os: ubuntu-latest
+          python: 314
           bitness: 64
           platform_id: manylinux_x86_64
           manylinux_image: mv-extractor:local
