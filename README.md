@@ -26,9 +26,15 @@ A usage example can be found [here](https://github.com/LukasBommes/mv-extractor/
 
 ## News
 
-### Changes in Upcoming Release 2.0
+### Changes in Upcoming Release 2.0.0
 
-- Dropped extraction of timestamps as this feature was complex and difficult to maintain
+- Dropped extraction of timestamps as this feature was complex and difficult to maintain. Note the breaking API change to the `read` and `retrieve` methods of the `VideoCapture` class
+
+```diff
+- ret, frame, motion_vectors, frame_type, timestamp = cap.read()
++ ret, frame, motion_vectors, frame_type = cap.read()
+```
+
 - Added support for Python 3.13 and 3.14
 - Moved installation of FFMPEG and OpenCV from script files directly into Dockerfile
 
