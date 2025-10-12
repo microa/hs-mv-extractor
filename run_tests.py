@@ -23,8 +23,9 @@ def run_tests():
     # Run unit tests
     print("\n=== Running Unit Tests ===")
     try:
-        from tests.unit_tests import TestVideoCap
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestVideoCap)
+        # Use discover to find all tests in unit_tests module
+        loader = unittest.TestLoader()
+        suite = loader.loadTestsFromName('tests.unit_tests')
         runner = unittest.TextTestRunner(verbosity=2)
         result = runner.run(suite)
         print(f"Unit tests: {result.testsRun} tests, {len(result.failures)} failures, {len(result.errors)} errors")
@@ -34,19 +35,12 @@ def run_tests():
     # Run end-to-end tests
     print("\n=== Running End-to-End Tests ===")
     try:
-        from tests.end_to_end_tests import TestEndToEnd, TestMVOEndToEnd
-        
-        # Original end-to-end tests
-        suite1 = unittest.TestLoader().loadTestsFromTestCase(TestEndToEnd)
+        # Use discover to find all tests in end_to_end_tests module
+        loader = unittest.TestLoader()
+        suite = loader.loadTestsFromName('tests.end_to_end_tests')
         runner = unittest.TextTestRunner(verbosity=2)
-        result1 = runner.run(suite1)
-        print(f"Original E2E tests: {result1.testsRun} tests, {len(result1.failures)} failures, {len(result1.errors)} errors")
-        
-        # MVO mode tests
-        suite2 = unittest.TestLoader().loadTestsFromTestCase(TestMVOEndToEnd)
-        runner = unittest.TextTestRunner(verbosity=2)
-        result2 = runner.run(suite2)
-        print(f"MVO E2E tests: {result2.testsRun} tests, {len(result2.failures)} failures, {len(result2.errors)} errors")
+        result = runner.run(suite)
+        print(f"End-to-end tests: {result.testsRun} tests, {len(result.failures)} failures, {len(result.errors)} errors")
         
     except Exception as e:
         print(f"End-to-end tests failed: {e}")

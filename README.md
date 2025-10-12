@@ -65,8 +65,8 @@ extract_mvs -h
 For applications that only need motion vector data without RGB frame decoding, use the new **Motion Vectors Only (MVO) mode** for dramatic performance improvements:
 
 ### Performance Benefits
-- **117x faster** RAM processing
-- **74.8x faster** end-to-end processing  
+- **~100× faster** RAM-only processing (varies across runs)
+- **~70x faster** end-to-end processing  
 - **48% storage reduction** (motion vectors only)
 - **50%+ memory usage reduction**
 
