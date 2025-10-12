@@ -7,10 +7,6 @@ import subprocess
 import cv2
 import numpy as np
 
-# Add the src directory to the path for MVO tests
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 
 PROJECT_ROOT = os.getenv("PROJECT_ROOT", "")
 
@@ -48,7 +44,7 @@ class TestEndToEnd(unittest.TestCase):
     def test_end_to_end_h264(self):
         with tempfile.TemporaryDirectory() as outdir:
             print("Running extraction for H.264")
-            subprocess.run(f"extract_mvs {os.path.join(PROJECT_ROOT, 'data', 'vid_h264.mp4')} --dump {outdir}", shell=True, check=True)
+            subprocess.run(f"extract_mvs {os.path.join(PROJECT_ROOT, 'vid_h264.mp4')} --dump {outdir}", shell=True, check=True)
             refdir = os.path.join(PROJECT_ROOT, "tests/reference/h264")
 
             self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
@@ -59,7 +55,7 @@ class TestEndToEnd(unittest.TestCase):
     def test_end_to_end_mpeg4_part2(self):
         with tempfile.TemporaryDirectory() as outdir:
             print("Running extraction for MPEG-4 Part 2")
-            subprocess.run(f"extract_mvs {os.path.join(PROJECT_ROOT, 'data', 'vid_mpeg4_part2.mp4')} --dump {outdir}", shell=True, check=True)
+            subprocess.run(f"extract_mvs {os.path.join(PROJECT_ROOT, 'vid_mpeg4_part2.mp4')} --dump {outdir}", shell=True, check=True)
             refdir = os.path.join(PROJECT_ROOT, "tests/reference/mpeg4_part2")
 
             self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
@@ -71,214 +67,19 @@ class TestEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as outdir:
             print("Setting up end to end test for RTSP")
             media_server_binary = os.path.abspath(os.path.join(PROJECT_ROOT, "tests/tools/live555MediaServer"))
-            
-            # Check if RTSP server binary exists and is executable
-            if not os.path.exists(media_server_binary) or not os.access(media_server_binary, os.X_OK):
-                self.skipTest("RTSP server binary not available or not executable")
-            
+            rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
             try:
-                rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
-                time.sleep(2)  # Give server more time to start
+                time.sleep(1)
                 print("Running extraction for RTSP stream")
                 rtsp_url = "rtsp://localhost:554/vid_h264.264"
-                
-                # Test if RTSP server is responding
-                result = subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, capture_output=True, text=True)
-                if result.returncode != 0:
-                    self.skipTest(f"RTSP server not responding: {result.stderr}")
-                
+                subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, check=True)
                 refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
 
                 self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
                 self.assertTrue(self.frame_types_valid(outdir, refdir), msg="frame types are invalid")
                 self.assertTrue(self.frames_valid(outdir, refdir), msg="frames are invalid")
-            except Exception as e:
-                self.skipTest(f"RTSP test failed due to environment issues: {e}")
             finally:
-                if 'rtsp_server' in locals():
-                    rtsp_server.terminate()
-
-
-class TestMVOEndToEnd(unittest.TestCase):
-    """Test MVO (Motion Vectors Only) mode functionality"""
-
-    def setUp(self):
-        """Set up test fixtures"""
-        try:
-            from mvextractor.videocap import VideoCap
-        except ImportError:
-            # Fallback for when mvextractor is not available
-            VideoCap = None
-        self.VideoCap = VideoCap
-        self.cap = VideoCap() if VideoCap else None
-        self.test_video_h264 = os.path.join(PROJECT_ROOT, 'data', 'vid_h264.mp4')
-        self.test_video_mpeg4 = os.path.join(PROJECT_ROOT, 'data', 'vid_mpeg4_part2.mp4')
-    
-    def tearDown(self):
-        """Clean up after tests"""
-        if hasattr(self, 'cap'):
-            self.cap.release()
-    
-    def test_mvo_mode_h264(self):
-        """Test MVO mode with H.264 video"""
-        if self.cap is None:
-            self.skipTest("VideoCap not available")
-        if not os.path.exists(self.test_video_h264):
-            self.skipTest("H.264 test video not found")
-        
-        ret = self.cap.open(self.test_video_h264)
-        self.assertTrue(ret, "Failed to open H.264 test video")
-        
-        # Enable MVO mode
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(True)
-        
-        frame_count = 0
-        motion_vectors_count = 0
-        
-        # Read first 10 frames
-        for i in range(10):
-            ret, frame, mvs, ftype, ts = self.cap.read()
-            if not ret:
-                break
-            
-            frame_count += 1
-            
-            # In MVO mode, frame should be None or empty
-            if frame is not None:
-                self.assertEqual(frame.size, 0, "Frame should be empty in MVO mode")
-            
-            # Motion vectors should be available
-            if mvs is not None and len(mvs) > 0:
-                motion_vectors_count += 1
-        
-        self.assertGreater(frame_count, 0, "Should read at least one frame")
-        self.assertGreater(motion_vectors_count, 0, "Should extract motion vectors")
-    
-    def test_mvo_mode_mpeg4(self):
-        """Test MVO mode with MPEG-4 Part 2 video"""
-        if self.cap is None:
-            self.skipTest("VideoCap not available")
-        if not os.path.exists(self.test_video_mpeg4):
-            self.skipTest("MPEG-4 test video not found")
-        
-        ret = self.cap.open(self.test_video_mpeg4)
-        self.assertTrue(ret, "Failed to open MPEG-4 test video")
-        
-        # Enable MVO mode
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(True)
-        
-        frame_count = 0
-        motion_vectors_count = 0
-        
-        # Read first 10 frames
-        for i in range(10):
-            ret, frame, mvs, ftype, ts = self.cap.read()
-            if not ret:
-                break
-            
-            frame_count += 1
-            
-            # In MVO mode, frame should be None or empty
-            if frame is not None:
-                self.assertEqual(frame.size, 0, "Frame should be empty in MVO mode")
-            
-            # Motion vectors should be available
-            if mvs is not None and len(mvs) > 0:
-                motion_vectors_count += 1
-        
-        self.assertGreater(frame_count, 0, "Should read at least one frame")
-        self.assertGreater(motion_vectors_count, 0, "Should extract motion vectors")
-    
-    def test_mvo_mode_rtsp(self):
-        """Test MVO mode with RTSP stream"""
-        if self.cap is None:
-            self.skipTest("VideoCap not available")
-        print("Setting up MVO test for RTSP")
-        media_server_binary = os.path.abspath(os.path.join(PROJECT_ROOT, "tests/tools/live555MediaServer"))
-        
-        # Check if RTSP server binary exists and is executable
-        if not os.path.exists(media_server_binary) or not os.access(media_server_binary, os.X_OK):
-            self.skipTest("RTSP server binary not available or not executable")
-        
-        rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
-        try:
-            time.sleep(2)  # Give server more time to start
-            rtsp_url = "rtsp://localhost:554/vid_h264.264"
-            
-            ret = self.cap.open(rtsp_url)
-            if not ret:
-                self.skipTest("RTSP server not responding, skipping RTSP test")
-            self.assertTrue(ret, "Failed to open RTSP stream")
-            
-            # Enable MVO mode
-            if hasattr(self.cap, 'set_motion_vectors_only'):
-                self.cap.set_motion_vectors_only(True)
-            
-            frame_count = 0
-            motion_vectors_count = 0
-            
-            # Read first 5 frames (RTSP might be slower)
-            for i in range(5):
-                ret, frame, mvs, ftype, ts = self.cap.read()
-                if not ret:
-                    break
-                
-                frame_count += 1
-                
-                # In MVO mode, frame should be None or empty
-                if frame is not None:
-                    self.assertEqual(frame.size, 0, "Frame should be empty in MVO mode")
-                
-                # Motion vectors should be available
-                if mvs is not None and len(mvs) > 0:
-                    motion_vectors_count += 1
-            
-            self.assertGreater(frame_count, 0, "Should read at least one frame from RTSP")
-            self.assertGreater(motion_vectors_count, 0, "Should extract motion vectors from RTSP")
-            
-        finally:
-            rtsp_server.terminate()
-    
-    def test_mvo_vs_full_mode_comparison(self):
-        """Test that MVO mode produces no frames while full mode produces frames"""
-        if self.cap is None:
-            self.skipTest("VideoCap not available")
-        if not os.path.exists(self.test_video_h264):
-            self.skipTest("H.264 test video not found")
-        
-        # Test full mode
-        ret = self.cap.open(self.test_video_h264)
-        self.assertTrue(ret, "Failed to open test video")
-        
-        # Disable MVO mode (full mode)
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(False)
-        
-        ret, frame, mvs, ftype, ts = self.cap.read()
-        self.assertTrue(ret, "Should read frame successfully")
-        self.assertIsNotNone(frame, "Frame should not be None in full mode")
-        self.assertGreater(frame.size, 0, "Frame should have content in full mode")
-        
-        self.cap.release()
-        
-        # Test MVO mode
-        if self.VideoCap is None:
-            self.skipTest("VideoCap not available")
-        self.cap = self.VideoCap()
-        ret = self.cap.open(self.test_video_h264)
-        self.assertTrue(ret, "Failed to open test video")
-        
-        # Enable MVO mode
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(True)
-        
-        ret, frame, mvs, ftype, ts = self.cap.read()
-        self.assertTrue(ret, "Should read frame successfully")
-        # Frame should be None or empty in MVO mode
-        if frame is not None:
-            self.assertEqual(frame.size, 0, "Frame should be empty in MVO mode")
+                rtsp_server.terminate()
 
 
 if __name__ == '__main__':
