@@ -65,7 +65,7 @@ RUN git clone --branch stable --depth 1 https://code.videolan.org/videolan/x264.
   make install && \
   rm -rf ../x264
 
-ARG FFMPEG_VERSION="4.1.3"
+ARG FFMPEG_VERSION="4.4.6"
 WORKDIR /opt/ffmpeg_sources
 RUN wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-"$FFMPEG_VERSION".tar.bz2 && \
   mkdir -p ffmpeg && \
