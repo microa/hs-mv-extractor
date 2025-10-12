@@ -88,7 +88,7 @@ To run the tests directly on your machine, you need to install the motion vector
 
 Now, change into the `mv_extractor` directory and run the tests with
 ```
-python3 -m unittest discover -s tests -p "*tests.py"
+python3.12 -m unittest discover -s tests -p "*tests.py"
 ```
 Confirm that all tests pass.
 
