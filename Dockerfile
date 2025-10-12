@@ -8,11 +8,15 @@ RUN yum update -y && \
     git \
     make \
     cmake \
-    gcc \
+    gcc-toolset-10 \
     gcc-c++ \
     pkgconfig \
     libtool && \
   yum clean all
+
+# Activate specific version of gcc toolset (newer versions of gcc fail to build old versions of ffmpeg)
+ENV PATH="/opt/rh/gcc-toolset-10/root/usr/bin:$PATH"
+ENV LD_LIBRARY_PATH="/opt/rh/gcc-toolset-10/root/usr/lib64:$LD_LIBRARY_PATH"
 
 # Install OpenCV
 ARG OPENCV_VERSION="4.12.0"
