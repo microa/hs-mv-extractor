@@ -126,6 +126,6 @@ COPY README.md /home/video_cap/
 RUN python3.12 -m pip install .
 
 # Location of the "extract_mvs" script
-ENV PATH="$PATH:/opt/_internal/cpython-3.12.7/bin"
+ENV PATH="$PATH:/opt/python/cp312-cp312/bin"
 
 CMD ["sh", "-c", "tail -f /dev/null"]
