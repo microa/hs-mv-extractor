@@ -12,12 +12,6 @@ PROJECT_ROOT = os.getenv("PROJECT_ROOT", "")
 
 class TestMotionVectorExtraction(unittest.TestCase):
 
-    def validate_timestamp(self, timestamp, tolerance=10.0):
-        self.assertIsInstance(timestamp, float)
-        self.assertLessEqual(timestamp, time.time())
-        self.assertGreaterEqual(timestamp+tolerance, time.time())
-
-
     def validate_frame(self, frame):
         self.assertEqual(type(frame), np.ndarray)
         self.assertEqual(frame.dtype, np.uint8)
@@ -65,9 +59,8 @@ class TestMotionVectorExtraction(unittest.TestCase):
     def test_read_not_opened_cap(self):
         ret = self.cap.open("vid_not_existent.mp4")
         self.assertFalse(ret)
-        ret, frame, motion_vectors, frame_type, timestamp = self.cap.read()
+        ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertEqual(frame_type, "?")
-        self.assertEqual(timestamp, 0.0)
         self.assertFalse(ret)
         self.assertIsNone(frame)
         self.validate_motion_vectors(motion_vectors)
@@ -75,10 +68,9 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
     def test_read_first_I_frame(self):
         self.open_video()
-        ret, frame, motion_vectors, frame_type, timestamp = self.cap.read()
+        ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret)
-        self.assertEqual(frame_type, "I")
-        self.validate_timestamp(timestamp)        
+        self.assertEqual(frame_type, "I")      
         self.validate_frame(frame)
         self.validate_motion_vectors(motion_vectors)
 
@@ -86,10 +78,9 @@ class TestMotionVectorExtraction(unittest.TestCase):
     def test_read_first_P_frame(self):
         self.open_video()
         self.cap.read()  # skip first frame (I frame)
-        ret, frame, motion_vectors, frame_type, timestamp = self.cap.read()
+        ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret)
-        self.assertEqual(frame_type, "P")
-        self.validate_timestamp(timestamp)        
+        self.assertEqual(frame_type, "P")      
         self.validate_frame(frame)
         self.validate_motion_vectors(motion_vectors, shape=(3665, 10))
         self.assertTrue(np.all(motion_vectors[:10, :] == np.array([
@@ -111,19 +102,16 @@ class TestMotionVectorExtraction(unittest.TestCase):
         frames = []
         motion_vectors = []
         frame_types = []
-        timestamps = []
         self.open_video()
         for _ in range(10):
-            ret, frame, motion_vector, frame_type, timestamp = self.cap.read()
+            ret, frame, motion_vector, frame_type = self.cap.read()
             rets.append(ret)
             frames.append(frame)
             motion_vectors.append(motion_vector)
             frame_types.append(frame_type)
-            timestamps.append(timestamp)
 
         self.assertTrue(all(rets))
         self.assertEqual(frame_types, ['I', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'])
-        [self.validate_timestamp(timestamp) for timestamp in timestamps]
         [self.validate_frame(frame) for frame in frames]
         shapes = [
             (0, 10), (3665, 10), (3696, 10), (3722, 10), (3807, 10), 
@@ -136,7 +124,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.open_video()
         frame_count = 0
         while True:
-            ret, _, _, _, _ = self.cap.read()
+            ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             frame_count += 1
@@ -148,7 +136,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
         times = []
         while True:
             tstart = time.perf_counter()
-            ret, _, _, _, _ = self.cap.read()
+            ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             tend = time.perf_counter()

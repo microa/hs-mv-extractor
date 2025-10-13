@@ -76,14 +76,9 @@ RUN wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-"$FFMPEG_
   tar xjvf ffmpeg-snapshot.tar.bz2 -C ffmpeg --strip-components=1 && \
   rm -rf ffmpeg-snapshot.tar.bz2
 
-COPY ./ffmpeg_patch /opt/ffmpeg_sources/ffmpeg_patch
-ENV FFMPEG_INSTALL_DIR=/opt/ffmpeg_sources/ffmpeg
-ENV FFMPEG_PATCH_DIR=/opt/ffmpeg_sources/ffmpeg_patch
 
-WORKDIR /opt/ffmpeg_sources
-RUN ffmpeg_patch/patch.sh && \
-  cd ffmpeg && \
-  ./configure \
+WORKDIR /opt/ffmpeg_sources/ffmpeg
+RUN ./configure \
   --pkg-config-flags="--static" \
   --extra-cflags="-I/usr/local/include" \
   --extra-ldflags="-L/usr/local/lib" \

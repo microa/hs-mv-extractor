@@ -31,7 +31,7 @@ def main(args=None):
     parser.add_argument('-p', '--preview', action='store_true', help='show a preview video with overlaid motion vectors')
     parser.add_argument('-v', '--verbose', action='store_true', help='show detailled text output')
     parser.add_argument('-d', '--dump', nargs='?', const=True,
-        help='dump frames, motion vectors, frame types, and timestamps to optionally specified output directory')
+        help='dump frames, motion vectors and frame types to optionally specified output directory')
     args = parser.parse_args()
 
     if args.dump:
@@ -64,7 +64,7 @@ def main(args=None):
         tstart = time.perf_counter()
 
         # read next video frame and corresponding motion vectors
-        ret, frame, motion_vectors, frame_type, timestamp = cap.read()
+        ret, frame, motion_vectors, frame_type = cap.read()
 
         tend = time.perf_counter()
         telapsed = tend - tstart
@@ -78,9 +78,7 @@ def main(args=None):
 
         # print results
         if args.verbose:
-            print("timestamp: {} | ".format(timestamp), end=" ")
             print("frame type: {} | ".format(frame_type), end=" ")
-
             print("frame size: {} | ".format(np.shape(frame)), end=" ")
             print("motion vectors: {} | ".format(np.shape(motion_vectors)), end=" ")
             print("elapsed time: {} s".format(telapsed))
@@ -91,8 +89,6 @@ def main(args=None):
         if args.dump:
             cv2.imwrite(os.path.join(dumpdir, "frames", f"frame-{step}.jpg"), frame)
             np.save(os.path.join(dumpdir, "motion_vectors", f"mvs-{step}.npy"), motion_vectors)
-            with open(os.path.join(dumpdir, "timestamps.txt"), "a") as f:
-                f.write(str(timestamp)+"\n")
             with open(os.path.join(dumpdir, "frame_types.txt"), "a") as f:
                 f.write(frame_type+"\n")
 
