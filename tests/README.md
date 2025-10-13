@@ -20,17 +20,11 @@ Each subdirectory contains:
 
 ## Reference Data Creation
 
-Reference datasets were obtained from the provided video files `vid_h264.mp4` and `vid_mpeg4_part2.mp4` as explained below.
+Reference datasets for H.264 and MPEG-4 PART 2 were obtained by running the `extract_mvs` command of a manually verified version of the mvextractor on the provided video files `vid_h264.mp4` and `vid_mpeg4_part2.mp4`
 
-### reference/h264
+RTSP reference data was obtained by streaming one of the video files with the [LIVE555 Media Server](http://www.live555.com/mediaServer/) and then reading the RTSP stream with the motion vector extractor. To reproduce the reference data, follow the steps below.
 
-### reference/mpeg4_part2
-
-### reference/rtsp
-
-This reference data was obtained by streaming one of the video files with the [LIVE555 Media Server](http://www.live555.com/mediaServer/) and then reading the RTSP stream with the motion vector extractor. To reproduce the reference data, follow the steps below.
-
-#### Convert input file into H.264 video elementary stream
+### Convert input file into H.264 video elementary stream
 
 First, convert the `vid_h264.mp4` file into a H.264 video elementary stream file. To this end, run
 ```
@@ -46,7 +40,7 @@ MultiFramedRTPSink::afterGettingFrame1(): The input frame data was too large for
 ```
 and the resulting video frame is truncated at the bottom.
 
-#### Serve the video with LIVE555 Media Server
+### Serve the video with LIVE555 Media Server
 
 Now, we serve the file `vid_h264.264` with LIVE555 Media Server. Place the file in a folder named `data`
 ```
@@ -67,7 +61,7 @@ live555MediaServer &
 ```
 You may have to hit `CTRL+C` now to dismiss the log of the server. The server will continue running in the background.
 
-#### Consume the RTSP stream with the motion vector extractor
+### Consume the RTSP stream with the motion vector extractor
 
 Still in the Docker container, install the motion vector extractor
 ```
@@ -78,7 +72,7 @@ and run it to read and dump the RTSP stream to a folder named `out-reference`
 /opt/python/cp312-cp312/bin/extract_mvs 'rtsp://localhost:554/vid_h264.264' --verbose --dump out-reference
 ```
 
-#### Preserve reference data and cleanup
+### Preserve reference data and cleanup
 
 Finally, exist the container with
 ```
