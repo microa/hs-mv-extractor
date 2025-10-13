@@ -167,8 +167,8 @@ public:
     bool read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs);
 
     /** Enable/disable decoding frames in addition to extracting motion vectors. 
-    * When enabled, retrieve() will skip color space conversion and not fill the 
-    * frame buffer to avoid costly RGB decoding/copying.
+    * If decoding is disabled (false), retrieve() will skip color space conversion 
+    * and not fill the frame buffer to avoid costly RGB decoding/copying.
     */
     void setDecodeFrames(bool enable);
     bool getDecodeFrames();
