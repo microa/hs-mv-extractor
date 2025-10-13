@@ -12,8 +12,6 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-#include "time_cvt.hpp"
-
 
 // for changing the dtype of motion vector
 #define MVS_DTYPE int32_t
@@ -67,28 +65,11 @@ private:
     Image_FFMPEG picture;
     struct SwsContext *img_convert_ctx;
     int64_t frame_number;
-    double frame_timestamp;
-    bool is_rtsp;
     // When true, retrieve only motion vectors and skip RGB/color conversion
     bool motion_vectors_only;
 #if USE_AV_INTERRUPT_CALLBACK
     AVInterruptCallbackMetadata interrupt_metadata;
 #endif
-
-    /** Determines whether the input is a video file or an RTSP stream
-    *
-    * @param format_names A comma separated list of formats which correspond to
-    *     to the the input. This list is stored in the `iformat->name` field of
-    *     the stream's AVFormatContext.
-    *
-    * @retval true if the format names contain "rtsp" which means the input url
-    *     correpsonds to an RTSP stream, false if the input is a video file.
-    */
-    bool check_format_rtsp(const char *format_names);
-    // Enable/disable motion-vectors-only mode. When enabled, retrieve() will
-    // skip color space conversion and not fill the frame buffer to avoid
-    // costly RGB decoding/copying.
-
 
 public:
 
@@ -174,30 +155,16 @@ public:
     * @param num_mvs The number of motion vectors corresponding to the rows of
     *    the motion vector array.
     *
-    * @param frame_timestamp UTC wall time of each frame in the format of a UNIX
-    *    timestamp. In case, input is a video file, the timestamp is derived
-    *    from the system time. If the input is an RTSP stream the timestamp
-    *    marks the time the frame was sent out by the sender (e.g. IP camera).
-    *    Thus, the timestamp represents the wall time at which the frame was
-    *    taken rather then the time at which the frame was received. This allows
-    *    e.g. for accurate synchronization of multiple RTSP streams. In order
-    *    for this to work, the RTSP sender needs to generate RTCP sender
-    *    reports which contain a mapping from wall time to stream time. Not all
-    *    RTSP senders will send sender reports as it is not part of the
-    *    standard. If IP cameras are used which implement the ONVIF standard,
-    *    sender reports are always sent and thus timestamps can always be
-    *    computed.
-    *
     * @retval true if the grabbed video frame and motion vectors could be
     *    decoded and returned successfully, false otherwise.
     */
-    bool retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp);
+    bool retrieve(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs);
 
     /** Convenience wrapper which combines a call of `grab` and `retrieve`.
     *
     *   The parameters and return value correspond to the `retrieve` method.
     */
-    bool read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs, double *frame_timestamp);
+    bool read(uint8_t **frame, int *step, int *width, int *height, int *cn, char *frame_type, MVS_DTYPE **motion_vectors, MVS_DTYPE *num_mvs);
 
     // Enable/disable motion-vectors-only mode. When enabled, retrieve() will
     // skip color space conversion and not fill the frame buffer to avoid

@@ -59,17 +59,14 @@ VideoCap_retrieve(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     MVS_DTYPE num_mvs = 0;
     char frame_type[2] = "?";
 
-    double frame_timestamp = 0;
-
     PyObject *ret = Py_True;
 
-    if (!self->vcap.retrieve(&frame, &step, &width, &height, &cn, frame_type, &motion_vectors, &num_mvs, &frame_timestamp)) {
+    if (!self->vcap.retrieve(&frame, &step, &width, &height, &cn, frame_type, &motion_vectors, &num_mvs)) {
         num_mvs = 0;
         width = 0;
         height = 0;
         step = 0;
         cn = 0;
-        frame_timestamp = 0;
         ret = Py_False;
     }
 
@@ -90,7 +87,7 @@ VideoCap_retrieve(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     PyObject *motion_vectors_nd = PyArray_SimpleNewFromData(2, dims_mvs, MVS_DTYPE_NP, motion_vectors);
     PyArray_ENABLEFLAGS((PyArrayObject*)motion_vectors_nd, NPY_ARRAY_OWNDATA);
 
-    return Py_BuildValue("(ONNsd)", ret, frame_nd, motion_vectors_nd, (const char*)frame_type, frame_timestamp);
+    return Py_BuildValue("(ONNs)", ret, frame_nd, motion_vectors_nd, (const char*)frame_type);
 }
 
 
@@ -108,17 +105,14 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     MVS_DTYPE num_mvs = 0;
     char frame_type[2] = "?";
 
-    double frame_timestamp = 0;
-
     PyObject *ret = Py_True;
 
-    if (!self->vcap.read(&frame, &step, &width, &height, &cn, frame_type, &motion_vectors, &num_mvs, &frame_timestamp)) {
+    if (!self->vcap.read(&frame, &step, &width, &height, &cn, frame_type, &motion_vectors, &num_mvs)) {
         num_mvs = 0;
         width = 0;
         height = 0;
         step = 0;
         cn = 0;
-        frame_timestamp = 0;
         ret = Py_False;
     }
 
@@ -138,7 +132,7 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     PyObject *motion_vectors_nd = PyArray_SimpleNewFromData(2, dims_mvs, MVS_DTYPE_NP, motion_vectors);
     PyArray_ENABLEFLAGS((PyArrayObject*)motion_vectors_nd, NPY_ARRAY_OWNDATA);
 
-    return Py_BuildValue("(ONNsd)", ret, frame_nd, motion_vectors_nd, (const char*)frame_type, frame_timestamp);
+    return Py_BuildValue("(ONNs)", ret, frame_nd, motion_vectors_nd, (const char*)frame_type);
 }
 
 

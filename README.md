@@ -7,26 +7,33 @@
     Motion Vector Extractor
 </h1>
 
-This tool extracts frames, motion vectors, frame types and timestamps from H.264 and MPEG-4 Part 2 encoded videos.
+This tool extracts frames, motion vectors and frame types from H.264 and MPEG-4 Part 2 encoded videos.
 
 This class is a replacement for OpenCV's [VideoCapture](https://docs.opencv.org/4.1.0/d8/dfe/classcv_1_1VideoCapture.html) and can be used to read and decode video frames from a H.264 or MPEG-4 Part 2 encoded video stream/file. It returns the following values for each frame:
 - decoded frame as BGR image
 - motion vectors
 - Frame type (keyframe, P- or B-frame)
-- (for RTSP streams): UTC wall time of the moment the sender sent out a frame (as opposed to an easily retrievable timestamp for the frame reception)
 
-These additional features enable further projects, such as fast visual object tracking or synchronization of multiple RTSP streams. Both a C++ and a Python API is provided. Under the hood [FFMPEG](https://github.com/FFmpeg/FFmpeg) is used.
+You can use these for applications, such as fast visual object tracking. Both a C++ and a Python API is provided. Under the hood [FFMPEG](https://github.com/FFmpeg/FFmpeg) is used.
 
 The image below shows a video frame with extracted motion vectors overlaid.
 
 ![motion_vector_demo_image](https://raw.githubusercontent.com/LukasBommes/mv-extractor/cb8e08f4c1e161d103d5382ded93134f26e96f05/mvs.png)
 
-A usage example can be found [here](https://github.com/LukasBommes/mv-extractor/blob/add_pypi_readme/src/mvextractor/__main__.py).
+A usage example can be found [here](https://github.com/LukasBommes/mv-extractor/blob/master/src/mvextractor/__main__.py).
 
+*Note*: Versions 1.x of the mv-extractor additionally returned the timestamps of video frames. For RTSP streams the UTC wall time of the moment the sender sent out a frame was returned (as opposed to an easily retrievable timestamp for the frame reception). Since this feature required patching FFMPEG-internals it proofed difficult to maintain. Hence, I decided to remove this feature in the 2.0 release. If you rely on this feature, please use version 1.1.0.
 
 ## News
 
-### Changes in Upcoming Release 1.2.0
+### Changes in Upcoming Release 2.0.0
+
+- Dropped extraction of timestamps as this feature was complex and difficult to maintain. Note the breaking API change to the `read` and `retrieve` methods of the `VideoCapture` class
+
+```diff
+- ret, frame, motion_vectors, frame_type, timestamp = cap.read()
++ ret, frame, motion_vectors, frame_type = cap.read()
+```
 
 - Added support for Python 3.13 and 3.14
 - Moved installation of FFMPEG and OpenCV from script files directly into Dockerfile
@@ -171,7 +178,7 @@ from mvextractor.videocap import VideoCap
 ```
 You can then use it according to the example in `extract_mvs.py`.
 
-Generally, a video file is opened by `VideoCap.open()` and frames, motion vectors, frame types and timestamps are read by calling `VideoCap.read()` repeatedly. Before exiting the program, the video file has to be closed by `VideoCap.release()`. For a more detailed explanation see the API documentation below.
+Generally, a video file is opened by `VideoCap.open()` and frames, motion vectors and frame types are read by calling `VideoCap.read()` repeatedly. Before exiting the program, the video file has to be closed by `VideoCap.release()`. For a more detailed explanation see the API documentation below.
 
 ### Installation via Docker
 
@@ -260,7 +267,6 @@ Takes no input arguments and returns a tuple with the elements described in the 
 | 1 | frame | numpy array | Array of dtype uint8 shape (h, w, 3) containing the decoded video frame. w and h are the width and height of this frame in pixels. Channels are in BGR order. If no frame could be decoded an empty numpy ndarray of shape (0, 0, 3) and dtype uint8 is returned. |
 | 2 | motion vectors | numpy array | Array of dtype int32 and shape (N, 10) containing the N motion vectors of the frame. Each row of the array corresponds to one motion vector. If no motion vectors are present in a frame, e.g. if the frame is an `I` frame an empty numpy array of shape (0, 10) and dtype int32 is returned. The columns of each vector have the following meaning (also refer to [AVMotionVector](https://ffmpeg.org/doxygen/4.1/structAVMotionVector.html) in FFMPEG documentation): <br>- 0: `source`: offset of the reference frame from the current frame. The reference frame is the frame where the motion vector points to and where the corresponding macroblock comes from. If `source < 0`, the reference frame is in the past. For `source > 0` the it is in the future (in display order).<br>- 1: `w`: width of the vector's macroblock.<br>- 2: `h`: height of the vector's macroblock.<br>- 3: `src_x`: x-location (in pixels) where the motion vector points to in the reference frame.<br>- 4: `src_y`: y-location (in pixels) where the motion vector points to in the reference frame.<br>- 5: `dst_x`: x-location of the vector's origin in the current frame (in pixels). Corresponds to the x-center coordinate of the corresponding macroblock.<br>- 6: `dst_y`: y-location of the vector's origin in the current frame (in pixels). Corresponds to the y-center coordinate of the corresponding macroblock.<br>- 7: `motion_x`: Macroblock displacement in x-direction, multiplied by `motion_scale` to become integer. Used to compute fractional value for `src_x` as `src_x = dst_x + motion_x / motion_scale`.<br>- 8: `motion_y`: Macroblock displacement in y-direction, multiplied by `motion_scale` to become integer. Used to compute fractional value for `src_y` as `src_y = dst_y + motion_y / motion_scale`.<br>- 9: `motion_scale`: see definiton of columns 7 and 8. Used to scale up the motion components to integer values. E.g. if `motion_scale = 4`, motion components can be integer values but encode a float with 1/4 pixel precision.<br><br>Note: `src_x` and `src_y` are only in integer resolution. They are contained in the [AVMotionVector](https://ffmpeg.org/doxygen/4.1/structAVMotionVector.html) struct and exported only for the sake of completeness. Use equations in field 7 and 8 to get more accurate fractional values for `src_x` and `src_y`. |
 | 3 | frame_type | string | Unicode string representing the type of frame. Can be `"I"` for a keyframe, `"P"` for a frame with references to only past frames and `"B"` for a frame with references to both past and future frames. A `"?"` string indicates an unknown frame type. |
-| 4 | timestamp | double | UTC wall time of each frame in the format of a UNIX timestamp. In case, input is a video file, the timestamp is derived from the system time. If the input is an RTSP stream the timestamp marks the time the frame was send out by the sender (e.g. IP camera). Thus, the timestamp represents the wall time at which the frame was taken rather then the time at which the frame was received. This allows e.g. for accurate synchronization of multiple RTSP streams. In order for this to work, the RTSP sender needs to generate RTCP sender reports which contain a mapping from wall time to stream time. Not all RTSP senders will send sender reports as it is not part of the standard. If IP cameras are used which implement the ONVIF standard, sender reports are always sent and thus timestamps can always be computed. |
 
 ##### Method :: read()
 
@@ -293,22 +299,6 @@ In MPEG-4 Part 2 macroblocks are always 16 pixel x 16 pixel. In H.264 macroblock
 ##### Frame Types
 
 The frame type is either "P", "B" or "I" and refers to the H.264 encoding mode of the current frame. An "I" frame is send fully over the network and serves as a reference for "P" and "B" frames for which only differences to previously decoded frames are transmitted. Those differences are encoded via motion vectors. As a consequence, for an "I" frame no motion vectors are returned by this library. The difference between "P" and "B" frames is that "P" frames refer only to past frames, whereas "B" frames have motion vectors which refer to both past and future frames. References to future frames are possible even with live streams because the decoding order of frames differs from the presentation order.
-
-##### Timestamps
-
-In addition to extracting motion vectors and frame types, the video capture class also outputs a UNIX timestamp representing UTC wall time for each frame. If the stream originates from a video file, this timestamp is simply derived from the current system time. However, when an RTSP stream is used as input, the timestamp calculation is more intricate as the timestamps represents not the time when the frame was received, but the time when the frame was send by the sender. Thus, this timestamp can be used for accurate synchronization of multiple video streams.
-
-Computation of the frame wall time works as follows:
-
-1. Wait for a RTCP sender report package which contains a mapping between the stream's RTP timestamp and the current UTC wall time. Now, a correlation between RTP timestamps of the stream and wall time is known. Name the RTP timestamp `T_RTP_LAST` and the corresponding UTC wall time `T_UTC_LAST`.
-
-2. For each new frame, compute the UTC timestamp as follows:<br>
-```
-T_UTC = T_UTC_LAST + (T_RTP - T_RTP_LAST) / 90000
-```
-Here `T_RTP` is the frame's RTP timestamp and `T_RTP_LAST` and `T_UTC_LAST` are the RTP timestamp and corresponding UTC wall time of the last RTCP sender report packet. The factor of 90000 is needd because the RTP timestamps increment with 90 kHz per RTSP specification. That means, that the RTP timestamp increments by 90000 every second.
-
-Note, that the sender clock needs to be synchronized with a network time server (via NTP) to ensure frame timestamps are in sync with UTC. Most IP cameras provide an option for this.
 
 
 ## About

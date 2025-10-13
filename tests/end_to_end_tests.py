@@ -47,10 +47,7 @@ class TestEndToEnd(unittest.TestCase):
     def test_end_to_end_h264(self):
         with tempfile.TemporaryDirectory() as outdir:
             print("Running extraction for H.264")
-            video_path = os.path.join(PROJECT_ROOT, 'data', 'vid_h264.mp4')
-            if not os.path.exists(video_path):
-                self.skipTest("H.264 test video not found")
-            subprocess.run(f"extract_mvs {video_path} --dump {outdir}", shell=True, check=True)
+            subprocess.run(f"extract_mvs {os.path.join(PROJECT_ROOT, 'vid_h264.mp4')} --dump {outdir}", shell=True, check=True)
             refdir = os.path.join(PROJECT_ROOT, "tests/reference/h264")
 
             self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
@@ -61,10 +58,7 @@ class TestEndToEnd(unittest.TestCase):
     def test_end_to_end_mpeg4_part2(self):
         with tempfile.TemporaryDirectory() as outdir:
             print("Running extraction for MPEG-4 Part 2")
-            video_path = os.path.join(PROJECT_ROOT, 'data', 'vid_mpeg4_part2.mp4')
-            if not os.path.exists(video_path):
-                self.skipTest("MPEG-4 test video not found")
-            subprocess.run(f"extract_mvs {video_path} --dump {outdir}", shell=True, check=True)
+            subprocess.run(f"extract_mvs {os.path.join(PROJECT_ROOT, 'vid_mpeg4_part2.mp4')} --dump {outdir}", shell=True, check=True)
             refdir = os.path.join(PROJECT_ROOT, "tests/reference/mpeg4_part2")
 
             self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
@@ -81,10 +75,7 @@ class TestEndToEnd(unittest.TestCase):
                 time.sleep(1)
                 print("Running extraction for RTSP stream")
                 rtsp_url = "rtsp://localhost:554/vid_h264.264"
-                # Test if RTSP server is responding
-                result = subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, capture_output=True, text=True)
-                if result.returncode != 0:
-                    self.skipTest(f"RTSP server not responding: {result.stderr}")
+                subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, check=True)
                 refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
 
                 self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")

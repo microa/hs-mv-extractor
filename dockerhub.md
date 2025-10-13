@@ -1,6 +1,6 @@
 # Motion Vector Extractor
 
-The [motion vector extractor](https://github.com/LukasBommes/mv-extractor) is a tool to extract frames, motion vectors, frame types and timestamps from H.264 and MPEG-4 Part 2 encoded videos. The tool provides a single class, which serves as a replacement for OpenCV's [VideoCapture](https://docs.opencv.org/4.1.0/d8/dfe/classcv_1_1VideoCapture.html) and can be used to read and decode video frames from a H.264 or MPEG-4 Part 2 encoded video stream/file.
+The [motion vector extractor](https://github.com/LukasBommes/mv-extractor) is a tool to extract frames, motion vectors and frame types from H.264 and MPEG-4 Part 2 encoded videos. The tool provides a single class, which serves as a replacement for OpenCV's [VideoCapture](https://docs.opencv.org/4.1.0/d8/dfe/classcv_1_1VideoCapture.html) and can be used to read and decode video frames from a H.264 or MPEG-4 Part 2 encoded video stream/file.
 
 This Docker image is based on the [manylinux_2_28](https://github.com/pypa/manylinux) image and serves two purposes:
 1. It contains all dependencies to run the motion vector extractor and its test suite.
