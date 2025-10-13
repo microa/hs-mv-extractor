@@ -22,7 +22,7 @@ The image below shows a video frame with extracted motion vectors overlaid.
 
 A usage example can be found [here](https://github.com/LukasBommes/mv-extractor/blob/master/src/mvextractor/__main__.py).
 
-*Note*: Versions 1.x of the mv-extractor additionally returned the timestamps of video frames. For RTSP streams the UTC wall time of the moment the sender sent out a frame was returned (as opposed to an easily retrievable timestamp for the frame reception). Since this feature required patching FFMPEG-internals it proofed difficult to maintain. Hence, I decided to remove this feature in the 2.0 release. If you rely on this feature, please use version 1.1.0.
+*Note*: Versions 1.x of the mv-extractor additionally returned the timestamps of video frames. For RTSP streams the UTC wall time of the moment the sender sent out a frame was returned (as opposed to an easily retrievable timestamp for the frame reception). Since this feature required patching FFMPEG-internals it proved difficult to maintain. Hence, I decided to remove this feature in the 2.0 release. If you rely on this feature, please use version 1.1.0.
 
 ## News
 
@@ -37,6 +37,7 @@ A usage example can be found [here](https://github.com/LukasBommes/mv-extractor/
 
 - Added support for Python 3.13 and 3.14
 - Moved installation of FFMPEG and OpenCV from script files directly into Dockerfile
+- Improved readme
 
 ### Recent Changes in Release 1.1.0
 

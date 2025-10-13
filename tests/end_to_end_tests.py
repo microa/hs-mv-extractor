@@ -88,40 +88,32 @@ class TestEndToEnd(unittest.TestCase):
 
 
     def test_end_to_end_rtsp(self):
-        with tempfile.TemporaryDirectory() as outdir:
-            print("Setting up end to end test for RTSP")
-            media_server_binary = os.path.abspath(os.path.join(PROJECT_ROOT, "tests/tools/live555MediaServer"))
-            rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
-            try:
-                time.sleep(1)
+        print("Setting up end to end test for RTSP")
+        media_server_binary = os.path.abspath(os.path.join(PROJECT_ROOT, "tests/tools/live555MediaServer"))
+        rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
+        time.sleep(1)
+        rtsp_url = "rtsp://localhost:554/vid_h264.264"
+        try:
+            # with frame decoding
+            with tempfile.TemporaryDirectory() as outdir:
                 print("Running extraction for RTSP stream")
-                rtsp_url = "rtsp://localhost:554/vid_h264.264"
                 subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, check=True)
                 refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
 
                 self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
                 self.assertTrue(frame_types_valid(outdir, refdir), msg="frame types are invalid")
                 self.assertTrue(frames_valid(outdir, refdir), msg="frames are invalid")
-            finally:
-                rtsp_server.terminate()
 
-
-    def test_end_to_end_motion_vectors_only_rtsp(self):
-        with tempfile.TemporaryDirectory() as outdir:
-            print("Setting up end to end test for RTSP")
-            media_server_binary = os.path.abspath(os.path.join(PROJECT_ROOT, "tests/tools/live555MediaServer"))
-            rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
-            try:
-                time.sleep(1)
+            # skip frame decoding
+            with tempfile.TemporaryDirectory() as outdir:
                 print("Running motion-vectors-only extraction for RTSP stream")
-                rtsp_url = "rtsp://localhost:554/vid_h264.264"
                 subprocess.run(f"extract_mvs {rtsp_url} --skip-decoding-frames --dump {outdir}", shell=True, check=True)
                 refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
 
                 self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
                 self.assertTrue(frame_types_valid(outdir, refdir), msg="frame types are invalid")
-            finally:
-                rtsp_server.terminate()
+        finally:
+            rtsp_server.terminate()
 
 
 if __name__ == '__main__':
