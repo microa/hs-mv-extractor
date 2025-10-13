@@ -43,7 +43,10 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertIn('read', dir(self.cap))
         self.assertIn('release', dir(self.cap))
         self.assertIn('retrieve', dir(self.cap))
-
+        self.assertIn('decode_frames', dir(self.cap))
+        self.assertTrue(self.cap.decode_frames, "Frame decoding is expected to be actived")
+        self.cap_skip_frame_decoding = VideoCap(decode_frames=False)
+        self.assertFalse(self.cap_skip_frame_decoding.decode_frames, "Frame decoding is expected to be deactivated")
 
     def test_open_video(self):
         ret = self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))

@@ -9,7 +9,6 @@
 typedef struct {
     PyObject_HEAD
     VideoCap vcap;
-    //NDArrayConverter mat_to_ndarray_cvt;
 } VideoCapObject;
 
 
@@ -17,13 +16,22 @@ static int
 VideoCap_init(VideoCapObject *self, PyObject *args, PyObject *kwds)
 {
     static char *kwlist[] = {"decode_frames", NULL};
-    int decode_frames = 1;  // default to True
+    PyObject *decode_frames_obj = Py_True;  // default to True
 
-    // "|" separates positional from optional, "$" enforces keyword-only
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|$p", kwlist, &decode_frames)) {
+    // Enforce keyword-only argument
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|$O", kwlist, &decode_frames_obj)) {
         PyErr_SetString(PyExc_TypeError, "VideoCap only accepts 'decode_frames' as a keyword argument");
         return -1;
     }
+
+    // Strict type check: must be a bool
+    if (!PyBool_Check(decode_frames_obj)) {
+        PyErr_SetString(PyExc_TypeError, "'decode_frames' must be a boolean (True or False)");
+        return -1;
+    }
+
+    // Convert PyObject* to C++ bool
+    bool decode_frames = (decode_frames_obj == Py_True);
 
     self->vcap.setDecodeFrames(decode_frames);
     return 0;
@@ -177,8 +185,14 @@ static PyMethodDef VideoCap_methods[] = {
     {"grab", (PyCFunction) VideoCap_grab, METH_NOARGS, "Grab the next frame and motion vectors from the stream"},
     {"retrieve", (PyCFunction) VideoCap_retrieve, METH_NOARGS, "Decode the grabbed frame and motion vectors"},
     {"release", (PyCFunction) VideoCap_release, METH_NOARGS, "Release the video device and free ressources"},
-    {"get_decode_frames", (PyCFunction) VideoCap_get_decode_frames, METH_NOARGS, "Return whether RGB frames are being decoded"},
     {NULL}  /* Sentinel */
+};
+
+
+static PyGetSetDef VideoCap_getset[] = {
+    {"decode_frames", (getter)VideoCap_get_decode_frames, NULL,
+     "Whether RGB frames are decoded (True) or only motion vectors (False)", NULL},
+    {NULL}  // Sentinel
 };
 
 
@@ -212,7 +226,7 @@ static PyTypeObject VideoCapType = {
     .tp_iternext = NULL,
     .tp_methods = VideoCap_methods,
     .tp_members = NULL,
-    .tp_getset = NULL,
+    .tp_getset = VideoCap_getset,
     .tp_base = NULL,
     .tp_dict = NULL,
     .tp_descr_get = NULL,
