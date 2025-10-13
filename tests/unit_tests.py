@@ -1,155 +1,10 @@
-#!/usr/bin/env python3
-"""
-Unit tests for mv-extractor
-"""
-
-import unittest
-import numpy as np
-import sys
 import os
+import unittest
+import time
 
-# Add the src directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+import numpy as np
 
-try:
-    from mvextractor.videocap import VideoCap
-except ImportError:
-    # Fallback for when mvextractor is not available
-    VideoCap = None
-
-
-class TestVideoCap(unittest.TestCase):
-    """Test cases for VideoCap class"""
-    
-    def setUp(self):
-        """Set up test fixtures"""
-        self.cap = VideoCap()
-    
-    def tearDown(self):
-        """Clean up after tests"""
-        if hasattr(self, 'cap'):
-            self.cap.release()
-    
-    def test_video_cap_creation(self):
-        """Test VideoCap object creation"""
-        self.assertIsNotNone(self.cap)
-    
-    def test_mvo_mode_support(self):
-        """Test MVO mode API support"""
-        # Test if MVO mode API is available
-        has_mvo_api = hasattr(self.cap, 'set_motion_vectors_only')
-        self.assertTrue(has_mvo_api, "MVO mode API should be available")
-    
-    def test_mvo_mode_activation(self):
-        """Test MVO mode activation"""
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            # Should not raise an exception
-            self.cap.set_motion_vectors_only(True)
-            self.cap.set_motion_vectors_only(False)
-    
-    def test_fallback_api(self):
-        """Test fallback API for older versions"""
-        # Test the old API name if available
-        if hasattr(self.cap, 'setMotionVectorsOnly'):
-            self.cap.setMotionVectorsOnly(True)
-            self.cap.setMotionVectorsOnly(False)
-    
-    def test_mvo_mode_consistency(self):
-        """Test MVO mode API consistency"""
-        # Test that both API names work if available
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            # Test new API
-            self.cap.set_motion_vectors_only(True)
-            self.cap.set_motion_vectors_only(False)
-        
-        if hasattr(self.cap, 'setMotionVectorsOnly'):
-            # Test old API
-            self.cap.setMotionVectorsOnly(True)
-            self.cap.setMotionVectorsOnly(False)
-    
-    def test_mvo_mode_with_video_file(self):
-        """Test MVO mode with actual video file"""
-        import os
-        project_root = os.getenv("PROJECT_ROOT", "")
-        test_video = os.path.join(project_root, 'data', 'vid_h264.mp4')
-        
-        if not os.path.exists(test_video):
-            self.skipTest("H.264 test video not found")
-        
-        ret = self.cap.open(test_video)
-        self.assertTrue(ret, "Failed to open test video")
-        
-        # Enable MVO mode
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(True)
-        
-        # Read one frame
-        ret, frame, mvs, ftype, ts = self.cap.read()
-        self.assertTrue(ret, "Should read frame successfully")
-        
-        # In MVO mode, frame should be None or empty
-        if frame is not None:
-            self.assertEqual(frame.size, 0, "Frame should be empty in MVO mode")
-        
-        # Motion vectors should be available
-        self.assertIsNotNone(mvs, "Motion vectors should be available")
-        self.assertIsInstance(mvs, np.ndarray, "Motion vectors should be numpy array")
-    
-    def test_mvo_mode_performance(self):
-        """Test that MVO mode is faster than full mode"""
-        import os
-        import time
-        project_root = os.getenv("PROJECT_ROOT", "")
-        test_video = os.path.join(project_root, 'data', 'vid_h264.mp4')
-        
-        if not os.path.exists(test_video):
-            self.skipTest("H.264 test video not found")
-        
-        # Test MVO mode timing
-        ret = self.cap.open(test_video)
-        self.assertTrue(ret, "Failed to open test video")
-        
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(True)
-        
-        start_time = time.perf_counter()
-        frame_count = 0
-        for i in range(10):  # Read 10 frames
-            ret, frame, mvs, ftype, ts = self.cap.read()
-            if not ret:
-                break
-            frame_count += 1
-        mvo_time = time.perf_counter() - start_time
-        
-        self.cap.release()
-        
-        # Test full mode timing
-        self.cap = VideoCap()
-        ret = self.cap.open(test_video)
-        self.assertTrue(ret, "Failed to open test video")
-        
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(False)
-        
-        start_time = time.perf_counter()
-        frame_count_full = 0
-        for i in range(10):  # Read 10 frames
-            ret, frame, mvs, ftype, ts = self.cap.read()
-            if not ret:
-                break
-            frame_count_full += 1
-        full_time = time.perf_counter() - start_time
-        
-        # MVO mode should be faster (or at least not significantly slower)
-        self.assertGreaterEqual(frame_count, 1, "Should read at least one frame in MVO mode")
-        self.assertGreaterEqual(frame_count_full, 1, "Should read at least one frame in full mode")
-        
-        # Performance comparison (MVO should be faster)
-        if mvo_time > 0 and full_time > 0:
-            speedup = full_time / mvo_time
-            print(f"MVO mode speedup: {speedup:.2f}x")
-            # MVO should be at least as fast as full mode
-            self.assertGreaterEqual(speedup, 0.5, "MVO mode should be reasonably fast")
+from mvextractor.videocap import VideoCap
 
 
 PROJECT_ROOT = os.getenv("PROJECT_ROOT", "")
@@ -167,6 +22,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertEqual(type(motion_vectors), np.ndarray)
         self.assertEqual(motion_vectors.dtype, np.int32)
         self.assertEqual(motion_vectors.shape, shape)
+
 
     # run before every test
     def setUp(self):
@@ -294,6 +150,101 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertGreater(dt_std, 0)
         self.assertLess(dt_mean, 0.01, msg=f"Mean of frame read duration exceeds maximum ({dt_mean} s > {0.01} s)")
         self.assertLess(dt_std, 0.003, msg=f"Standard deviation of frame read duration exceeds maximum ({dt_std} s > {0.003} s)")
+
+
+class TestVideoCap(unittest.TestCase):
+    """Test cases for VideoCap class"""
+    
+    def setUp(self):
+        self.cap = VideoCap()
+    
+    def tearDown(self):
+        self.cap.release()
+    
+    def test_video_cap_creation(self):
+        self.assertIsNotNone(self.cap)
+    
+    def test_mvo_mode_support(self):
+        has_mvo_api = hasattr(self.cap, 'set_motion_vectors_only')
+        self.assertTrue(has_mvo_api, "MVO mode API should be available")
+    
+    def test_mvo_mode_activation(self):
+        # Should not raise an exception
+        self.cap.set_motion_vectors_only(True)
+        self.cap.set_motion_vectors_only(False)
+    
+    def test_mvo_mode_with_video_file(self):
+        test_video = os.path.join(PROJECT_ROOT, 'vid_h264.mp4')
+        ret = self.cap.open(test_video)
+        self.assertTrue(ret, "Failed to open test video")
+        
+        # Enable MVO mode
+        self.cap.set_motion_vectors_only(True)
+        
+        # Read one frame
+        ret, frame, mvs, ftype = self.cap.read()
+        self.assertTrue(ret, "Should read frame successfully")
+        
+        # In MVO mode, frame should be None or empty
+        if frame is not None:
+            self.assertEqual(frame.size, 0, "Frame should be empty in MVO mode")
+        
+        # Motion vectors should be available
+        self.assertIsNotNone(mvs, "Motion vectors should be available")
+        self.assertIsInstance(mvs, np.ndarray, "Motion vectors should be numpy array")
+    
+    def test_mvo_mode_performance(self):
+        """Test that MVO mode is faster than full mode"""
+        test_video = os.path.join(PROJECT_ROOT, 'vid_h264.mp4')
+        
+        if not os.path.exists(test_video):
+            self.skipTest("H.264 test video not found")
+        
+        # Test MVO mode timing
+        ret = self.cap.open(test_video)
+        self.assertTrue(ret, "Failed to open test video")
+        
+        if hasattr(self.cap, 'set_motion_vectors_only'):
+            self.cap.set_motion_vectors_only(True)
+        
+        start_time = time.perf_counter()
+        frame_count = 0
+        for i in range(10):  # Read 10 frames
+            ret, _, _, _ = self.cap.read()
+            if not ret:
+                break
+            frame_count += 1
+        mvo_time = time.perf_counter() - start_time
+        
+        self.cap.release()
+        
+        # Test full mode timing
+        self.cap = VideoCap()
+        ret = self.cap.open(test_video)
+        self.assertTrue(ret, "Failed to open test video")
+        
+        if hasattr(self.cap, 'set_motion_vectors_only'):
+            self.cap.set_motion_vectors_only(False)
+        
+        start_time = time.perf_counter()
+        frame_count_full = 0
+        for i in range(10):  # Read 10 frames
+            ret, _, _, _ = self.cap.read()
+            if not ret:
+                break
+            frame_count_full += 1
+        full_time = time.perf_counter() - start_time
+        
+        # MVO mode should be faster (or at least not significantly slower)
+        self.assertGreaterEqual(frame_count, 1, "Should read at least one frame in MVO mode")
+        self.assertGreaterEqual(frame_count_full, 1, "Should read at least one frame in full mode")
+        
+        # Performance comparison (MVO should be faster)
+        if mvo_time > 0 and full_time > 0:
+            speedup = full_time / mvo_time
+            print(f"MVO mode speedup: {speedup:.2f}x")
+            # MVO should be at least as fast as full mode
+            self.assertGreaterEqual(speedup, 0.5, "MVO mode should be reasonably fast")
 
 
 if __name__ == '__main__':

@@ -7,9 +7,6 @@ import subprocess
 import cv2
 import numpy as np
 
-# Add the src directory to the path for MVO tests
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 PROJECT_ROOT = os.getenv("PROJECT_ROOT", "")
 
@@ -86,45 +83,28 @@ class TestEndToEnd(unittest.TestCase):
 
 
 class TestMVOEndToEnd(unittest.TestCase):
-    """Test MVO (Motion Vectors Only) mode functionality"""
 
     def setUp(self):
-        """Set up test fixtures"""
-        try:
-            from mvextractor.videocap import VideoCap
-        except ImportError:
-            # Fallback for when mvextractor is not available
-            VideoCap = None
+        from mvextractor.videocap import VideoCap
         self.VideoCap = VideoCap
         self.cap = VideoCap() if VideoCap else None
-        self.test_video_h264 = os.path.join(PROJECT_ROOT, 'data', 'vid_h264.mp4')
-        self.test_video_mpeg4 = os.path.join(PROJECT_ROOT, 'data', 'vid_mpeg4_part2.mp4')
+        self.test_video_h264 = os.path.join(PROJECT_ROOT, 'vid_h264.mp4')
+        self.test_video_mpeg4 = os.path.join(PROJECT_ROOT, 'vid_mpeg4_part2.mp4')
     
     def tearDown(self):
-        """Clean up after tests"""
-        if hasattr(self, 'cap') and self.cap:
-            self.cap.release()
+        self.cap.release()
     
     def test_mvo_mode_h264(self):
-        """Test MVO mode with H.264 video"""
-        if self.cap is None:
-            self.skipTest("VideoCap not available")
-        if not os.path.exists(self.test_video_h264):
-            self.skipTest("H.264 test video not found")
+        self.assertTrue(self.cap.open(self.test_video_h264), "Failed to open H.264 test video")
         
-        ret = self.cap.open(self.test_video_h264)
-        self.assertTrue(ret, "Failed to open H.264 test video")
-        
-        # Enable MVO mode
-        if hasattr(self.cap, 'set_motion_vectors_only'):
-            self.cap.set_motion_vectors_only(True)
+        self.cap.set_motion_vectors_only(True)
         
         frame_count = 0
         motion_vectors_count = 0
         
         # Read first 10 frames
         for i in range(10):
-            ret, frame, mvs, ftype, ts = self.cap.read()
+            ret, frame, mvs, ftype = self.cap.read()
             if not ret:
                 break
             
@@ -160,7 +140,7 @@ class TestMVOEndToEnd(unittest.TestCase):
         
         # Read first 10 frames
         for i in range(10):
-            ret, frame, mvs, ftype, ts = self.cap.read()
+            ret, frame, mvs, ftype = self.cap.read()
             if not ret:
                 break
             
@@ -192,7 +172,7 @@ class TestMVOEndToEnd(unittest.TestCase):
         if hasattr(self.cap, 'set_motion_vectors_only'):
             self.cap.set_motion_vectors_only(False)
         
-        ret, frame, mvs, ftype, ts = self.cap.read()
+        ret, frame, mvs, ftype = self.cap.read()
         self.assertTrue(ret, "Should read frame successfully")
         self.assertIsNotNone(frame, "Frame should not be None in full mode")
         self.assertGreater(frame.size, 0, "Frame should have content in full mode")
@@ -210,7 +190,7 @@ class TestMVOEndToEnd(unittest.TestCase):
         if hasattr(self.cap, 'set_motion_vectors_only'):
             self.cap.set_motion_vectors_only(True)
         
-        ret, frame, mvs, ftype, ts = self.cap.read()
+        ret, frame, mvs, ftype = self.cap.read()
         self.assertTrue(ret, "Should read frame successfully")
         # Frame should be None or empty in MVO mode
         if frame is not None:

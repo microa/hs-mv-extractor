@@ -14,16 +14,9 @@ import os
 import sys
 import numpy as np
 
-# Add the project root to the path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(project_root, 'src'))
+from mvextractor.videocap import VideoCap
 
-try:
-    from mvextractor import VideoCap
-except ImportError:
-    print("Error: mvextractor not found. Please install the package first.")
-    print("Run: pip install -e .")
-    sys.exit(1)
+
 
 def extract_motion_vectors(video_path, output_dir="output"):
     """
@@ -56,7 +49,7 @@ def extract_motion_vectors(video_path, output_dir="output"):
     
     # Extract motion vectors
     while True:
-        ret, frame, motion_vectors, frame_type, timestamp = cap.read()
+        ret, frame, motion_vectors, frame_type = cap.read()
         
         if not ret:
             break
@@ -120,7 +113,7 @@ def extract_motion_vectors_only(video_path, output_dir="output"):
     
     # Extract motion vectors
     while True:
-        ret, frame, motion_vectors, frame_type, timestamp = cap.read()
+        ret, frame, motion_vectors, frame_type = cap.read()
         
         if not ret:
             break
@@ -141,7 +134,7 @@ def extract_motion_vectors_only(video_path, output_dir="output"):
 
 if __name__ == "__main__":
     # Example usage
-    video_path = "../data/vid_h264.mp4"  # Adjust path as needed
+    video_path = "vid_h264.mp4"  # Adjust path as needed
     
     if not os.path.exists(video_path):
         print(f"Video file not found: {video_path}")
