@@ -25,7 +25,7 @@ VideoCap_init(VideoCapObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    self->vcap.setMotionVectorsOnly(!decode_frames);
+    self->vcap.setDecodeFrames(decode_frames);
     return 0;
 }
 
@@ -87,9 +87,9 @@ VideoCap_retrieve(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
         ret = Py_False;
     }
 
-    // copy frame buffer into new cv::Mat (unless in motion-vectors-only mode)
+    // copy frame buffer into new cv::Mat
     PyObject* frame_nd = Py_None;
-    if (!self->vcap.getMotionVectorsOnly()) {
+    if (self->vcap.getDecodeFrames()) {
         cv::Mat(height, width, CV_MAKETYPE(CV_8U, cn), frame, step).copyTo(frame_cv);
 
         // convert frame cv::Mat to numpy.ndarray
@@ -134,7 +134,7 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
     }
 
     PyObject* frame_nd = Py_None;
-    if (!self->vcap.getMotionVectorsOnly()) {
+    if (self->vcap.getDecodeFrames()) {
         cv::Mat(height, width, CV_MAKETYPE(CV_8U, cn), frame, step).copyTo(frame_cv);
 
         // convert frame cv::Mat to numpy.ndarray
@@ -162,9 +162,9 @@ VideoCap_release(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 
 
 static PyObject *
-VideoCap_get_motion_vectors_only(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
+VideoCap_get_decode_frames(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 {
-    if (self->vcap.getMotionVectorsOnly())
+    if (self->vcap.getDecodeFrames())
         Py_RETURN_TRUE;
     else
         Py_RETURN_FALSE;
@@ -177,15 +177,9 @@ static PyMethodDef VideoCap_methods[] = {
     {"grab", (PyCFunction) VideoCap_grab, METH_NOARGS, "Grab the next frame and motion vectors from the stream"},
     {"retrieve", (PyCFunction) VideoCap_retrieve, METH_NOARGS, "Decode the grabbed frame and motion vectors"},
     {"release", (PyCFunction) VideoCap_release, METH_NOARGS, "Release the video device and free ressources"},
-    {"get_motion_vectors_only", (PyCFunction) VideoCap_get_motion_vectors_only, METH_NOARGS, "Return whether motion-vectors-only mode is enabled"},
+    {"get_decode_frames", (PyCFunction) VideoCap_get_decode_frames, METH_NOARGS, "Return whether RGB frames are being decoded"},
     {NULL}  /* Sentinel */
 };
-
-// append new methods for motion-vectors-only flag
-static void _append_motion_methods() {
-    // We can't modify the static array at runtime easily; instead we'll
-    // rely on adding methods via the module-level API in PyInit (below)
-}
 
 
 static PyTypeObject VideoCapType = {

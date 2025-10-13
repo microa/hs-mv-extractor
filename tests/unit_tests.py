@@ -27,15 +27,13 @@ class TestMotionVectorExtraction(unittest.TestCase):
     # run before every test
     def setUp(self):
         self.cap = VideoCap()
+        self.cap_skip_frame_decoding = VideoCap(decode_frames=False)
 
 
     # run after every test regardless of success
     def tearDown(self):
         self.cap.release()
-
-
-    def open_video(self):
-        return self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.cap_skip_frame_decoding.release()
 
 
     def test_init_cap(self):
@@ -45,12 +43,10 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertIn('read', dir(self.cap))
         self.assertIn('release', dir(self.cap))
         self.assertIn('retrieve', dir(self.cap))
-        self.assertIn('set_motion_vectors_only', dir(self.cap))
-        self.assertIn('get_motion_vectors_only', dir(self.cap))
 
 
     def test_open_video(self):
-        ret = self.open_video()
+        ret = self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         self.assertTrue(ret, "Should open video file successfully")
 
     
@@ -70,7 +66,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_read_first_I_frame(self):
-        self.open_video()
+        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret, "Should succeed to read from video file")
         self.assertEqual(frame_type, "I", "Frame type of first frame should be I")      
@@ -79,7 +75,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_read_first_P_frame(self):
-        self.open_video()
+        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         self.cap.read()  # skip first frame (I frame)
         ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret, "Should succeed to read from video file")
@@ -105,7 +101,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
         frames = []
         motion_vectors = []
         frame_types = []
-        self.open_video()
+        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         for _ in range(10):
             ret, frame, motion_vector, frame_type = self.cap.read()
             rets.append(ret)
@@ -124,7 +120,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_frame_count(self):
-        self.open_video()
+        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         frame_count = 0
         while True:
             ret, _, _, _ = self.cap.read()
@@ -135,7 +131,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_timings(self):
-        self.open_video()
+        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         times = []
         while True:
             tstart = time.perf_counter()
@@ -154,34 +150,22 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertLess(dt_std, 0.003, msg=f"Standard deviation of frame read duration exceeds maximum ({dt_std} s > {0.003} s)")
 
 
-    def test_mvo_mode_support(self):
-        has_mvo_api = hasattr(self.cap, 'set_motion_vectors_only')
-        self.assertTrue(has_mvo_api, "MVO mode API should be available")
-    
-
-    def test_mvo_mode_activation_does_not_raise(self):
-        self.cap.set_motion_vectors_only(True)
-        self.cap.set_motion_vectors_only(False)
-
-
-    def test_read_first_I_frame_mvo_mode(self):
-        self.open_video()
-        self.cap.set_motion_vectors_only(True)
-        ret, frame, motion_vectors, frame_type = self.cap.read()
+    def test_read_first_I_frame_skipping_frame_decoding(self):
+        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        ret, frame, motion_vectors, frame_type = self.cap_skip_frame_decoding.read()
         self.assertTrue(ret, "Should succeed to read from video file")
         self.assertEqual(frame_type, "I", "Frame type of first frame should be I")
-        self.assertIsNone(frame, "Frame should be None in MVO mode")
+        self.assertIsNone(frame, "Frame should be None when skipping frame decoding")
         self.validate_motion_vectors(motion_vectors)
         
 
-    def test_read_first_P_frame_mvo_mode(self):
-        self.open_video()
-        self.cap.set_motion_vectors_only(True)
-        self.cap.read()  # skip first frame (I frame)
-        ret, frame, motion_vectors, frame_type = self.cap.read()
+    def test_read_first_P_frame_skipping_frame_decoding(self):
+        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.cap_skip_frame_decoding.read()  # skip first frame (I frame)
+        ret, frame, motion_vectors, frame_type = self.cap_skip_frame_decoding.read()
         self.assertTrue(ret, "Should succeed to read from video file")
         self.assertEqual(frame_type, "P", "Frame type of second frame should be P")      
-        self.assertIsNone(frame, "Frame should be None in MVO mode")
+        self.assertIsNone(frame, "Frame should be None when skipping frame decoding")
         self.validate_motion_vectors(motion_vectors, shape=(3665, 10))
         self.assertTrue(np.all(motion_vectors[:10, :] == np.array([
             [-1, 16, 16,   8, 8,   8, 8, 0, 0, 4],
@@ -197,15 +181,14 @@ class TestMotionVectorExtraction(unittest.TestCase):
         ])), "Motion vectors should match the expected values")
 
 
-    def test_read_first_ten_frames_mvo_mode(self):
+    def test_read_first_ten_frames_skipping_frame_decoding(self):
         rets = []
         frames = []
         motion_vectors = []
         frame_types = []
-        self.open_video()
-        self.cap.set_motion_vectors_only(True)
+        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         for _ in range(10):
-            ret, frame, motion_vector, frame_type = self.cap.read()
+            ret, frame, motion_vector, frame_type = self.cap_skip_frame_decoding.read()
             rets.append(ret)
             frames.append(frame)
             motion_vectors.append(motion_vector)
@@ -221,50 +204,48 @@ class TestMotionVectorExtraction(unittest.TestCase):
         [self.validate_motion_vectors(motion_vector, shape) for motion_vector, shape in zip(motion_vectors, shapes)]
 
 
-    def test_frame_count_mvo_mode(self):
-        self.open_video()
-        self.cap.set_motion_vectors_only(True)
+    def test_frame_count_skipping_frame_decoding(self):
+        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         frame_count = 0
         while True:
-            ret, _, _, _ = self.cap.read()
+            ret, _, _, _ = self.cap_skip_frame_decoding.read()
             if not ret:
                 break
             frame_count += 1
         self.assertEqual(frame_count, 337, "Video file is expected to have 337 frames")
 
 
-    def test_mvo_mode_is_faster_than_full_mode(self):
-        self.open_video()
-        # MVO mode
-        self.cap.set_motion_vectors_only(True)
+    def test_skipping_frame_decoding_is_faster_than_not_skipping(self):
+        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        # skip frame decoding
         start_time = time.perf_counter()
         frame_count = 0
-        for _ in range(50):  # read 10 frames
-            ret, _, _, _ = self.cap.read()
+        for _ in range(50):  # read 50 frames
+            ret, _, _, _ = self.cap_skip_frame_decoding.read()
             if not ret:
                 break
             frame_count += 1
         mvo_time = time.perf_counter() - start_time
         
-        # full mode
-        self.cap.set_motion_vectors_only(False)
+        # do not skip frame decoding
+        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
         start_time = time.perf_counter()
         frame_count_full = 0
-        for i in range(50):  # Read 10 frames
+        for i in range(50):  # Read 50 frames
             ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             frame_count_full += 1
         full_time = time.perf_counter() - start_time
         
-        self.assertEqual(frame_count, 50, "Should read 10 frames in MVO mode")
-        self.assertEqual(frame_count_full, 50, "Should read 10 frames in full mode")
+        self.assertEqual(frame_count, 50, "Should read 50 frames")
+        self.assertEqual(frame_count_full, 50, "Should read 50 frames")
         
-        # Performance comparison (MVO should be at least as fast as full mode)
+        # Performance comparison (skipping decoding should be at least as fast as not skipping decoding mode)
         if mvo_time > 0 and full_time > 0:
             speedup = full_time / mvo_time
-            print(f"MVO mode speedup: {speedup:.2f}x")
-            self.assertGreaterEqual(speedup, 1.0, "MVO mode should be reasonably fast")
+            print(f"Speedup by skipping frame decoding: {speedup:.2f}x")
+            self.assertGreaterEqual(speedup, 1.0, "Skipping frame decoding should be reasonably fast")
 
 
 if __name__ == '__main__':

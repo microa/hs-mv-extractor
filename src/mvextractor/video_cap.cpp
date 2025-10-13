@@ -11,7 +11,7 @@ VideoCap::VideoCap() {
     this->frame = NULL;
     this->img_convert_ctx = NULL;
     this->frame_number = 0;
-    this->motion_vectors_only = false;
+    this->decode_frames = true;
 
     memset(&(this->rgb_frame), 0, sizeof(this->rgb_frame));
     memset(&(this->picture), 0, sizeof(this->picture));
@@ -61,7 +61,6 @@ void VideoCap::release(void) {
     this->video_stream = NULL;
     this->video_stream_idx = -1;
     this->frame_number = 0;
-    this->motion_vectors_only = false;
 }
 
 
@@ -143,9 +142,6 @@ bool VideoCap::open(const char *url) {
     if (!this->frame)
         goto error;
 
-    // default: not in motion-vectors-only mode
-    this->motion_vectors_only = false;
-
     if (this->video_stream_idx >= 0)
         valid = true;
 
@@ -157,12 +153,12 @@ error:
     return valid;
 }
 
-void VideoCap::setMotionVectorsOnly(bool enable) {
-    this->motion_vectors_only = enable;
+void VideoCap::setDecodeFrames(bool enable) {
+    this->decode_frames = enable;
 }
 
-bool VideoCap::getMotionVectorsOnly() {
-    return this->motion_vectors_only;
+bool VideoCap::getDecodeFrames() {
+    return this->decode_frames;
 }
 
 
@@ -226,8 +222,8 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
     if (!this->video_stream || !(this->frame->data[0]))
         return false;
 
-    // If not in motion-vectors-only mode, perform color conversion and return frame buffer
-    if (!this->motion_vectors_only) {
+    // perform color conversion and return frame buffer
+    if (this->decode_frames) {
 
         if (this->img_convert_ctx == NULL ||
             this->picture.width != this->video_dec_ctx->width ||
@@ -283,7 +279,7 @@ bool VideoCap::retrieve(uint8_t **frame, int *step, int *width, int *height, int
         *cn = this->picture.cn;
 
     } else {
-        // motion-vectors-only mode: don't allocate or return frame buffer
+        // when not decoding frames, don't allocate or return frame buffer
         *frame = NULL;
         *width = 0;
         *height = 0;

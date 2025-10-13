@@ -87,10 +87,10 @@ For applications that only need motion vector data without RGB frame decoding, u
 #### Command Line
 ```bash
 # Enable MVO mode for maximum performance
-extract_mvs video.mp4 --motion-vectors-only
+extract_mvs video.mp4 --skip-frame-decoding
 
 # MVO mode with verbose output
-extract_mvs video.mp4 --motion-vectors-only --verbose
+extract_mvs video.mp4 --skip-frame-decoding --verbose
 ```
 
 #### Python API

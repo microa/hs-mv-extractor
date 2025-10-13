@@ -57,7 +57,7 @@ class TestEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as outdir:
             print("Running motion-vectors-only extraction for H.264")
             video_path = os.path.join(PROJECT_ROOT, 'vid_h264.mp4')
-            subprocess.run(f"extract_mvs {video_path} --motion-vectors-only --dump {outdir}", shell=True, check=True)
+            subprocess.run(f"extract_mvs {video_path} --skip-decoding-frames --dump {outdir}", shell=True, check=True)
             refdir = os.path.join(PROJECT_ROOT, "tests/reference/h264")
 
             self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
@@ -80,7 +80,7 @@ class TestEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as outdir:
             print("Running motion-vectors-only extraction for MPEG-4 Part 2")
             video_path = os.path.join(PROJECT_ROOT, 'vid_mpeg4_part2.mp4')
-            subprocess.run(f"extract_mvs {video_path} --motion-vectors-only --dump {outdir}", shell=True, check=True)
+            subprocess.run(f"extract_mvs {video_path} --skip-decoding-frames --dump {outdir}", shell=True, check=True)
             refdir = os.path.join(PROJECT_ROOT, "tests/reference/mpeg4_part2")
 
             self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
@@ -115,7 +115,7 @@ class TestEndToEnd(unittest.TestCase):
                 time.sleep(1)
                 print("Running motion-vectors-only extraction for RTSP stream")
                 rtsp_url = "rtsp://localhost:554/vid_h264.264"
-                subprocess.run(f"extract_mvs {rtsp_url} --motion-vectors-only --dump {outdir}", shell=True, check=True)
+                subprocess.run(f"extract_mvs {rtsp_url} --skip-decoding-frames --dump {outdir}", shell=True, check=True)
                 refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
 
                 self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")

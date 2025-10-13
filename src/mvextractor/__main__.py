@@ -30,7 +30,7 @@ def main(args=None):
     parser.add_argument('video_url', type=str, nargs='?', help='file path or url of the video stream')
     parser.add_argument('-p', '--preview', action='store_true', help='show a preview video with overlaid motion vectors')
     parser.add_argument('-v', '--verbose', action='store_true', help='show detailled text output')
-    parser.add_argument('-m', '--motion-vectors-only', action='store_true', help='do not return RGB frames, only motion vectors (faster)')
+    parser.add_argument('-s', '--skip-decoding-frames', action='store_true', help='skip decoding RGB frames and return only motion vectors (faster)')
     parser.add_argument('-d', '--dump', nargs='?', const=True,
         help='dump frames, motion vectors and frame types to optionally specified output directory')
     args = parser.parse_args()
@@ -43,7 +43,7 @@ def main(args=None):
         for child in ["frames", "motion_vectors"]:
             os.makedirs(os.path.join(dumpdir, child), exist_ok=True)
 
-    cap = VideoCap()
+    cap = VideoCap(decode_frames=(not args.skip_decoding_frames))
 
     # open the video file
     ret = cap.open(args.video_url)
@@ -53,10 +53,6 @@ def main(args=None):
     
     if args.verbose:
         print("Sucessfully opened video file")
-
-    # enable motion-vectors-only mode if requested
-    if args.motion_vectors_only:
-        cap.set_motion_vectors_only(True)
 
     step = 0
     times = []
@@ -91,8 +87,8 @@ def main(args=None):
             print("motion vectors: {} | ".format(np.shape(motion_vectors)), end=" ")
             print("elapsed time: {} s".format(telapsed))
 
-        # If not in motion-vectors-only mode, draw vectors on frames
-        if not args.motion_vectors_only and frame is not None:
+        # draw vectors on frames
+        if not args.skip_decoding_frames and frame is not None:
             frame = draw_motion_vectors(frame, motion_vectors)
 
         # store motion vectors, frames, etc. in output directory
@@ -102,13 +98,13 @@ def main(args=None):
             with open(os.path.join(dumpdir, "frame_types.txt"), "a") as f:
                 f.write(frame_type+"\n")
 
-            # save frames only when not in motion-vectors-only mode
-            if not args.motion_vectors_only and frame is not None:
+            # save frames
+            if not args.skip_decoding_frames and frame is not None:
                 cv2.imwrite(os.path.join(dumpdir, "frames", f"frame-{step}.jpg"), frame)
 
         step += 1
 
-        if args.preview and not args.motion_vectors_only:
+        if args.preview and not args.skip_decoding_frames:
             cv2.imshow("Frame", frame)
 
             # if user presses "q" key stop program
