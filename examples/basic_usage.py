@@ -93,11 +93,7 @@ def extract_motion_vectors_only(video_path, output_dir="output"):
     cap = VideoCap()
     
     # Enable motion vectors only mode for maximum performance
-    try:
-        cap.set_motion_vectors_only(True)
-        print("Motion vectors only mode enabled")
-    except AttributeError:
-        print("Motion vectors only mode not available")
+    cap.set_motion_vectors_only(True)
     
     # Open video file
     if not cap.open(video_path):

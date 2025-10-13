@@ -56,14 +56,7 @@ def main(args=None):
 
     # enable motion-vectors-only mode if requested
     if args.motion_vectors_only:
-        try:
-            cap.set_motion_vectors_only(True)
-        except Exception:
-            # fallback for older bindings
-            try:
-                cap.setMotionVectorsOnly(True)
-            except Exception:
-                pass
+        cap.set_motion_vectors_only(True)
 
     step = 0
     times = []
