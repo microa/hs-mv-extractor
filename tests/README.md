@@ -1,16 +1,36 @@
-# Reference Data
+# Reference Test Data
 
-This README explains how the reference datasets were obtained from the provided video files `vid_h264.mp4` and `vid_mpeg4_part2.mp4`.
+This directory contains reference test data for validating mv-extractor output. The test suite compares current output against this reference data to ensure no regressions. More specifically the test suite verifies that:
+1. Motion vector extraction produces consistent results
+2. Frame decoding works correctly
+3. Frame types are correctly identified
 
-## reference/h264
+## Structure
 
-## reference/mpeg4_part2
+- `h264/` - H.264 test video reference data
+- `mpeg4_part2/` - MPEG-4 Part 2 test video reference data  
+- `rtsp/` - RTSP stream reference data
 
-## reference/rtsp
+## Data Format
+
+Each subdirectory contains:
+- `motion_vectors/` - Motion vector .npy files
+- `frames/` - Frame image .jpg files
+- `frame_types.txt` - Frame type information
+
+## Reference Data Creation
+
+Reference datasets were obtained from the provided video files `vid_h264.mp4` and `vid_mpeg4_part2.mp4` as explained below.
+
+### reference/h264
+
+### reference/mpeg4_part2
+
+### reference/rtsp
 
 This reference data was obtained by streaming one of the video files with the [LIVE555 Media Server](http://www.live555.com/mediaServer/) and then reading the RTSP stream with the motion vector extractor. To reproduce the reference data, follow the steps below.
 
-### Convert input file into H.264 video elementary stream
+#### Convert input file into H.264 video elementary stream
 
 First, convert the `vid_h264.mp4` file into a H.264 video elementary stream file. To this end, run
 ```
@@ -26,7 +46,7 @@ MultiFramedRTPSink::afterGettingFrame1(): The input frame data was too large for
 ```
 and the resulting video frame is truncated at the bottom.
 
-### Serve the video with LIVE555 Media Server
+#### Serve the video with LIVE555 Media Server
 
 Now, we serve the file `vid_h264.264` with LIVE555 Media Server. Place the file in a folder named `data`
 ```
@@ -47,7 +67,7 @@ live555MediaServer &
 ```
 You may have to hit `CTRL+C` now to dismiss the log of the server. The server will continue running in the background.
 
-### Consume the RTSP stream with the motion vector extractor
+#### Consume the RTSP stream with the motion vector extractor
 
 Still in the Docker container, install the motion vector extractor
 ```
@@ -58,7 +78,7 @@ and run it to read and dump the RTSP stream to a folder named `out-reference`
 /opt/python/cp312-cp312/bin/extract_mvs 'rtsp://localhost:554/vid_h264.264' --verbose --dump out-reference
 ```
 
-### Preserve reference data and cleanup
+#### Preserve reference data and cleanup
 
 Finally, exist the container with
 ```
