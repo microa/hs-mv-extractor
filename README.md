@@ -7,22 +7,28 @@
     Motion Vector Extractor
 </h1>
 
-This tool extracts frames, motion vectors and frame types from H.264 and MPEG-4 Part 2 encoded videos.
+This tool extracts motion vectors, frames, and frame types from H.264 and MPEG-4 Part 2 encoded videos.
 
-This class is a replacement for OpenCV's [VideoCapture](https://docs.opencv.org/4.1.0/d8/dfe/classcv_1_1VideoCapture.html) and can be used to read and decode video frames from a H.264 or MPEG-4 Part 2 encoded video stream/file. It returns the following values for each frame:
-- decoded frame as BGR image
+A replacement for OpenCV's [VideoCapture](https://docs.opencv.org/4.1.0/d8/dfe/classcv_1_1VideoCapture.html) that returns for each frame:
+- Frame type (I, P, or B)
 - motion vectors
-- Frame type (keyframe, P- or B-frame)
+- Optional decoded frame as BGR image
 
-You can use these for applications, such as fast visual object tracking. Both a C++ and a Python API is provided. Under the hood [FFMPEG](https://github.com/FFmpeg/FFmpeg) is used.
+Frame decoding can be skipped for very fast motion vector extraction, ideal for, e.g., fast visual object tracking. Both a C++ and a Python API is provided.
 
 The image below shows a video frame with extracted motion vectors overlaid.
 
 ![motion_vector_demo_image](https://raw.githubusercontent.com/LukasBommes/mv-extractor/cb8e08f4c1e161d103d5382ded93134f26e96f05/mvs.png)
 
-A usage example can be found [here](https://github.com/LukasBommes/mv-extractor/blob/master/src/mvextractor/__main__.py).
+<details>
+  <summary><strong>Note on Deprecation of Timestamp Extraction</strong></summary>
 
-*Note*: Versions 1.x of the mv-extractor additionally returned the timestamps of video frames. For RTSP streams the UTC wall time of the moment the sender sent out a frame was returned (as opposed to an easily retrievable timestamp for the frame reception). Since this feature required patching FFMPEG-internals it proved difficult to maintain. Hence, I decided to remove this feature in the 2.0 release. If you rely on this feature, please use version 1.1.0.
+  Versions 1.x of the motion vector extractor additionally returned the timestamps of video frames. For RTSP streams, the UTC wall time of when the sender transmitted a frame was returned (rather than the more easily retrievable reception timestamp).
+
+  Since this feature required patching FFmpeg internals, it became difficult to maintain and prevented compatibility with newer versions of FFmpeg.
+
+  As a result, timestamp extraction was removed in the 2.0.0 release. If you rely on this feature, please use version **1.1.0**.
+</details>
 
 ## News
 
@@ -90,46 +96,6 @@ cap.release()
 ```
 
 ## Advanced Usage
-
-### Run Tests
-
-You can run the test suite either directly on your machine or (easier) within the provided Docker container. Both methods require you to first clone the repository. To this end, change into the desired installation directory on your machine and run
-```bash
-git clone https://github.com/LukasBommes/mv-extractor.git mv_extractor
-```
-
-#### In Docker Container
-
-To run the tests in the Docker container, change into the `mv_extractor` directory, and run
-```bash
-./run.sh /bin/bash -c 'yum install -y compat-openssl10 && python3.12 -m unittest discover -s tests -p "*tests.py"'
-```
-
-#### On Host
-
-To run the tests directly on your machine, you need to install the motion vector extractor as explained [above](#step-1-install).
-
-Now, change into the `mv_extractor` directory and run the tests with
-```bash
-python3.12 -m unittest discover -s tests -p "*tests.py"
-```
-Confirm that all tests pass.
-
-Some tests run the [LIVE555 Media Server](http://www.live555.com/mediaServer/), which has dependencies on its own, such as OpenSSL. Make sure these dependencies are installed correctly on your machine, or otherwise you will get test failures with messages, such as "error while loading shared libraries: libssl.so.10: cannot open shared object file: No such file or directory". E.g. in Alma Linux you could fix this issue by installing OpenSSL with
-```bash
-yum install -y compat-openssl10
-```
-For other operating systems you may be lacking additional dependencies, and the package names and installation command may differ.
-
-### Importing mvextractor into Your Own Scripts
-
-If you want to use the motion vector extractor in your own Python script import it via
-```python
-from mvextractor.videocap import VideoCap
-```
-You can then use it according to the example in `extract_mvs.py`.
-
-Generally, a video file is opened by `VideoCap.open()` and frames, motion vectors and frame types are read by calling `VideoCap.read()` repeatedly. Before exiting the program, the video file has to be closed by `VideoCap.release()`. For a more detailed explanation see the API documentation below.
 
 ### Installation via Docker
 
