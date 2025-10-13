@@ -13,6 +13,23 @@ typedef struct {
 } VideoCapObject;
 
 
+static int
+VideoCap_init(VideoCapObject *self, PyObject *args, PyObject *kwds)
+{
+    static char *kwlist[] = {"decode_frames", NULL};
+    int decode_frames = 1;  // default to True
+
+    // "|" separates positional from optional, "$" enforces keyword-only
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|$p", kwlist, &decode_frames)) {
+        PyErr_SetString(PyExc_TypeError, "VideoCap only accepts 'decode_frames' as a keyword argument");
+        return -1;
+    }
+
+    self->vcap.setMotionVectorsOnly(!decode_frames);
+    return 0;
+}
+
+
 static void
 VideoCap_dealloc(VideoCapObject *self)
 {
@@ -137,15 +154,12 @@ VideoCap_read(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 
 
 static PyObject *
-VideoCap_set_motion_vectors_only(VideoCapObject *self, PyObject *args)
+VideoCap_release(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 {
-    int enable = 0;
-    if (!PyArg_ParseTuple(args, "p", &enable))
-        Py_RETURN_NONE;
-
-    self->vcap.setMotionVectorsOnly(enable != 0);
+    self->vcap.release();
     Py_RETURN_NONE;
 }
+
 
 static PyObject *
 VideoCap_get_motion_vectors_only(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
@@ -157,21 +171,12 @@ VideoCap_get_motion_vectors_only(VideoCapObject *self, PyObject *Py_UNUSED(ignor
 }
 
 
-static PyObject *
-VideoCap_release(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
-{
-    self->vcap.release();
-    Py_RETURN_NONE;
-}
-
-
 static PyMethodDef VideoCap_methods[] = {
     {"open", (PyCFunction) VideoCap_open, METH_VARARGS, "Open a video file or device with given filename/url"},
     {"read", (PyCFunction) VideoCap_read, METH_NOARGS, "Grab and decode the next frame and motion vectors"},
     {"grab", (PyCFunction) VideoCap_grab, METH_NOARGS, "Grab the next frame and motion vectors from the stream"},
     {"retrieve", (PyCFunction) VideoCap_retrieve, METH_NOARGS, "Decode the grabbed frame and motion vectors"},
     {"release", (PyCFunction) VideoCap_release, METH_NOARGS, "Release the video device and free ressources"},
-    {"set_motion_vectors_only", (PyCFunction) VideoCap_set_motion_vectors_only, METH_VARARGS, "Enable/disable motion-vectors-only mode (skip RGB)"},
     {"get_motion_vectors_only", (PyCFunction) VideoCap_get_motion_vectors_only, METH_NOARGS, "Return whether motion-vectors-only mode is enabled"},
     {NULL}  /* Sentinel */
 };
@@ -219,7 +224,7 @@ static PyTypeObject VideoCapType = {
     .tp_descr_get = NULL,
     .tp_descr_set = NULL,
     .tp_dictoffset = 0,
-    .tp_init = NULL,
+    .tp_init = (initproc) VideoCap_init,
     .tp_alloc = NULL,
     .tp_new = PyType_GenericNew,
     .tp_free = NULL,
