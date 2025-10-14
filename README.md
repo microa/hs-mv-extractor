@@ -152,7 +152,7 @@ This module provides a Python API which is very similar to that of OpenCV [Video
 
 | Attributes | Description |
 | --- | --- |
-| decode_frames | Getter to check if frame decoding is activated (True) or skipped (False) for this VideoCap instance |
+| decode_frames | Getter to check if frame decoding is enabled (True) or skipped (False) |
 
 ##### Method :: VideoCap()
 
