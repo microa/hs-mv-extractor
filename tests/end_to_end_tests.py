@@ -106,33 +106,6 @@ class TestEndToEnd(unittest.TestCase):
                 rtsp_server.terminate()
 
 
-    # def test_end_to_end_rtsp(self):
-    #     print("Setting up end to end test for RTSP")
-    #     media_server_binary = os.path.abspath(os.path.join(PROJECT_ROOT, "tests/tools/live555MediaServer"))
-    #     rtsp_server = subprocess.Popen(media_server_binary, cwd=PROJECT_ROOT if PROJECT_ROOT else None)
-    #     time.sleep(5)
-    #     rtsp_url = "rtsp://localhost:554/vid_h264.264"
-    #     refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
-    #     try:
-    #         # with frame decoding
-    #         with tempfile.TemporaryDirectory() as outdir:
-    #             print("Running extraction for RTSP stream")
-    #             subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, check=True)
-    #             self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
-    #             self.assertTrue(frame_types_valid(outdir, refdir), msg="frame types are invalid")
-    #             self.assertTrue(frames_valid(outdir, refdir), msg="frames are invalid")
-
-    #         # skip frame decoding
-    #         with tempfile.TemporaryDirectory() as outdir:
-    #             time.sleep(2)
-    #             print("Running motion-vectors-only extraction for RTSP stream")
-    #             subprocess.run(f"extract_mvs {rtsp_url} --skip-decoding-frames --dump {outdir}", shell=True, check=True)
-    #             self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
-    #             self.assertTrue(frame_types_valid(outdir, refdir), msg="frame types are invalid")
-    #     finally:
-    #         rtsp_server.terminate()
-
-
 if __name__ == '__main__':
     unittest.main()
             
