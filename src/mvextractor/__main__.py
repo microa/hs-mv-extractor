@@ -43,7 +43,7 @@ def main(args=None):
         for child in ["frames", "motion_vectors"]:
             os.makedirs(os.path.join(dumpdir, child), exist_ok=True)
 
-    cap = VideoCap(decode_frames=(not args.skip_decoding_frames))
+    cap = VideoCap()
 
     # open the video file
     ret = cap.open(args.video_url)
@@ -53,6 +53,9 @@ def main(args=None):
     
     if args.verbose:
         print("Sucessfully opened video file")
+
+    if args.skip_decoding_frames:
+        cap.set_decode_frames(False)
 
     step = 0
     times = []
@@ -91,14 +94,11 @@ def main(args=None):
         if not args.skip_decoding_frames and frame is not None:
             frame = draw_motion_vectors(frame, motion_vectors)
 
-        # store motion vectors, frames, etc. in output directory
+        # store motion vectors, frames, and fraem types in output directory
         if args.dump:
-            # always save motion vectors and metadata
             np.save(os.path.join(dumpdir, "motion_vectors", f"mvs-{step}.npy"), motion_vectors)
             with open(os.path.join(dumpdir, "frame_types.txt"), "a") as f:
                 f.write(frame_type+"\n")
-
-            # save frames
             if not args.skip_decoding_frames and frame is not None:
                 cv2.imwrite(os.path.join(dumpdir, "frames", f"frame-{step}.jpg"), frame)
 

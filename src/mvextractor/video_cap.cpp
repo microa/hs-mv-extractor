@@ -61,6 +61,7 @@ void VideoCap::release(void) {
     this->video_stream = NULL;
     this->video_stream_idx = -1;
     this->frame_number = 0;
+    this->decode_frames = true;
 }
 
 
@@ -141,6 +142,9 @@ bool VideoCap::open(const char *url) {
     this->frame = av_frame_alloc();
     if (!this->frame)
         goto error;
+
+    // default: decode frames
+    this->decode_frames = true;
 
     if (this->video_stream_idx >= 0)
         valid = true;

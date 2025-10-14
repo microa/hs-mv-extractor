@@ -15,25 +15,7 @@ typedef struct {
 static int
 VideoCap_init(VideoCapObject *self, PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = {"decode_frames", NULL};
-    PyObject *decode_frames_obj = Py_True;  // default to True
-
-    // Enforce keyword-only argument
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|$O", kwlist, &decode_frames_obj)) {
-        PyErr_SetString(PyExc_TypeError, "VideoCap only accepts 'decode_frames' as a keyword argument");
-        return -1;
-    }
-
-    // Strict type check: must be a bool
-    if (!PyBool_Check(decode_frames_obj)) {
-        PyErr_SetString(PyExc_TypeError, "'decode_frames' must be a boolean (True or False)");
-        return -1;
-    }
-
-    // Convert PyObject* to C++ bool
-    bool decode_frames = (decode_frames_obj == Py_True);
-
-    self->vcap.setDecodeFrames(decode_frames);
+    new(&self->vcap) VideoCap();
     return 0;
 }
 
@@ -170,6 +152,18 @@ VideoCap_release(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 
 
 static PyObject *
+VideoCap_set_decode_frames(VideoCapObject *self, PyObject *args)
+{
+    int enable = 0;
+    if (!PyArg_ParseTuple(args, "p", &enable))
+        Py_RETURN_NONE;
+
+    self->vcap.setDecodeFrames(enable != 0);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject *
 VideoCap_get_decode_frames(VideoCapObject *self, PyObject *Py_UNUSED(ignored))
 {
     if (self->vcap.getDecodeFrames())
@@ -185,6 +179,7 @@ static PyMethodDef VideoCap_methods[] = {
     {"grab", (PyCFunction) VideoCap_grab, METH_NOARGS, "Grab the next frame and motion vectors from the stream"},
     {"retrieve", (PyCFunction) VideoCap_retrieve, METH_NOARGS, "Decode the grabbed frame and motion vectors"},
     {"release", (PyCFunction) VideoCap_release, METH_NOARGS, "Release the video device and free ressources"},
+    {"set_decode_frames", (PyCFunction) VideoCap_set_decode_frames, METH_VARARGS, "Enable/disable decoding of RGB frames"},
     {NULL}  /* Sentinel */
 };
 

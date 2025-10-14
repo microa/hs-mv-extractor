@@ -27,13 +27,15 @@ class TestMotionVectorExtraction(unittest.TestCase):
     # run before every test
     def setUp(self):
         self.cap = VideoCap()
-        self.cap_skip_frame_decoding = VideoCap(decode_frames=False)
 
 
     # run after every test regardless of success
     def tearDown(self):
         self.cap.release()
-        self.cap_skip_frame_decoding.release()
+
+
+    def open_video(self):
+        return self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
 
 
     def test_init_cap(self):
@@ -43,13 +45,27 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertIn('read', dir(self.cap))
         self.assertIn('release', dir(self.cap))
         self.assertIn('retrieve', dir(self.cap))
+        self.assertIn('set_decode_frames', dir(self.cap))
         self.assertIn('decode_frames', dir(self.cap))
-        self.assertTrue(self.cap.decode_frames, "Frame decoding is expected to be actived")
-        self.cap_skip_frame_decoding = VideoCap(decode_frames=False)
-        self.assertFalse(self.cap_skip_frame_decoding.decode_frames, "Frame decoding is expected to be deactivated")
+
+
+    def test_decode_frames_mode(self):
+        self.cap = VideoCap()
+        self.assertTrue(self.cap.decode_frames, "Frame decoding is expected to be actived by default")
+        self.cap.set_decode_frames(True)
+        self.assertTrue(self.cap.decode_frames, "Frame decoding is expected to be active")
+        self.cap.set_decode_frames(False)
+        self.assertFalse(self.cap.decode_frames, "Frame decoding is expected to be inactive")
+        self.open_video()
+        self.assertTrue(self.cap.decode_frames, "Frame decoding is expected to be actived after opening a video")
+        self.cap.set_decode_frames(False)
+        self.assertFalse(self.cap.decode_frames, "Frame decoding is expected to be inactive")
+        self.cap.release()
+        self.assertTrue(self.cap.decode_frames, "Frame decoding is expected to be active")
+
 
     def test_open_video(self):
-        ret = self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        ret = self.open_video()
         self.assertTrue(ret, "Should open video file successfully")
 
     
@@ -69,7 +85,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_read_first_I_frame(self):
-        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
         ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret, "Should succeed to read from video file")
         self.assertEqual(frame_type, "I", "Frame type of first frame should be I")      
@@ -78,7 +94,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_read_first_P_frame(self):
-        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
         self.cap.read()  # skip first frame (I frame)
         ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret, "Should succeed to read from video file")
@@ -104,7 +120,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
         frames = []
         motion_vectors = []
         frame_types = []
-        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
         for _ in range(10):
             ret, frame, motion_vector, frame_type = self.cap.read()
             rets.append(ret)
@@ -123,7 +139,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_frame_count(self):
-        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
         frame_count = 0
         while True:
             ret, _, _, _ = self.cap.read()
@@ -134,7 +150,7 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_timings(self):
-        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
         times = []
         while True:
             tstart = time.perf_counter()
@@ -153,9 +169,15 @@ class TestMotionVectorExtraction(unittest.TestCase):
         self.assertLess(dt_std, 0.003, msg=f"Standard deviation of frame read duration exceeds maximum ({dt_std} s > {0.003} s)")
 
 
+    def test_skipping_frame_decoding_does_not_raise(self):
+        self.cap.set_decode_frames(False)
+        self.cap.set_decode_frames(True)
+
+
     def test_read_first_I_frame_skipping_frame_decoding(self):
-        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
-        ret, frame, motion_vectors, frame_type = self.cap_skip_frame_decoding.read()
+        self.open_video()
+        self.cap.set_decode_frames(False)
+        ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret, "Should succeed to read from video file")
         self.assertEqual(frame_type, "I", "Frame type of first frame should be I")
         self.assertIsNone(frame, "Frame should be None when skipping frame decoding")
@@ -163,9 +185,10 @@ class TestMotionVectorExtraction(unittest.TestCase):
         
 
     def test_read_first_P_frame_skipping_frame_decoding(self):
-        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
-        self.cap_skip_frame_decoding.read()  # skip first frame (I frame)
-        ret, frame, motion_vectors, frame_type = self.cap_skip_frame_decoding.read()
+        self.open_video()
+        self.cap.set_decode_frames(False)
+        self.cap.read()  # skip first frame (I frame)
+        ret, frame, motion_vectors, frame_type = self.cap.read()
         self.assertTrue(ret, "Should succeed to read from video file")
         self.assertEqual(frame_type, "P", "Frame type of second frame should be P")      
         self.assertIsNone(frame, "Frame should be None when skipping frame decoding")
@@ -189,9 +212,10 @@ class TestMotionVectorExtraction(unittest.TestCase):
         frames = []
         motion_vectors = []
         frame_types = []
-        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
+        self.cap.set_decode_frames(False)
         for _ in range(10):
-            ret, frame, motion_vector, frame_type = self.cap_skip_frame_decoding.read()
+            ret, frame, motion_vector, frame_type = self.cap.read()
             rets.append(ret)
             frames.append(frame)
             motion_vectors.append(motion_vector)
@@ -208,10 +232,11 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_frame_count_skipping_frame_decoding(self):
-        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
+        self.cap.set_decode_frames(False)
         frame_count = 0
         while True:
-            ret, _, _, _ = self.cap_skip_frame_decoding.read()
+            ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             frame_count += 1
@@ -219,19 +244,20 @@ class TestMotionVectorExtraction(unittest.TestCase):
 
 
     def test_skipping_frame_decoding_is_faster_than_not_skipping(self):
-        self.cap_skip_frame_decoding.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.open_video()
         # skip frame decoding
+        self.cap.set_decode_frames(False)
         start_time = time.perf_counter()
         frame_count = 0
         for _ in range(50):  # read 50 frames
-            ret, _, _, _ = self.cap_skip_frame_decoding.read()
+            ret, _, _, _ = self.cap.read()
             if not ret:
                 break
             frame_count += 1
         mvo_time = time.perf_counter() - start_time
         
         # do not skip frame decoding
-        self.cap.open(os.path.join(PROJECT_ROOT, "vid_h264.mp4"))
+        self.cap.set_decode_frames(True)
         start_time = time.perf_counter()
         frame_count_full = 0
         for i in range(50):  # Read 50 frames

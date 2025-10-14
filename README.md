@@ -52,7 +52,6 @@ The image below shows a video frame with extracted motion vectors overlaid.
 ### Step 1: Install
 
 ```bash
-pip install --upgrade pip
 pip install motion-vector-extractor
 ```
 Note, that we currently provide the package only for x86-64 linux, such as Ubuntu or Debian, and Python 3.9 to 3.14. If you are on a different platform, please use the Docker image as described [below](#installation-via-docker).
@@ -81,16 +80,20 @@ extract_mvs -h
 ```python
 from mvextractor.videocap import VideoCap
 
-cap = VideoCap(decode_frames=True)
+cap = VideoCap()
 cap.open("vid_h264.mp4")
+
+# (optional) skip decoding frames
+cap.set_decode_frames(False)
 
 while True:
     ret, frame, motion_vectors, frame_type = cap.read()
     if not ret:
         break
-    print(f"Motion vectors: {len(motion_vectors)}")
+    print(f"Num. motion vectors: {len(motion_vectors)}")
     print(f"Frame type: {frame_type}")
-    print(f"Frame size: {frame.shape}")
+    if frame is not None:
+        print(f"Frame size: {frame.shape}")
 
 cap.release()
 ```
@@ -145,6 +148,7 @@ This module provides a Python API which is very similar to that of OpenCV [Video
 | retrieve() | Decodes and returns the grabbed frame and motion vectors |
 | read() | Convenience function which combines a call of grab() and retrieve() |
 | release() | Close a video file or url and release all ressources |
+| set_decode_frames() | Enable/disable decoding of video frames |
 
 | Attributes | Description |
 | --- | --- |
@@ -152,11 +156,7 @@ This module provides a Python API which is very similar to that of OpenCV [Video
 
 ##### Method :: VideoCap()
 
-Constructor.
-
-| Parameter | Type | Description |
-| --- | --- | --- |
-| decode_frames | bool | If True (default) RGB frames are decoded and returned in addition to extracted motion vectors. If False, frame decoding is skipped and only motion vectors are extracted and returned, yielding much higher extraction througput. |
+Constructor. Takes no input arguments and returns nothing.
 
 ##### Method :: open()
 
@@ -189,7 +189,7 @@ Takes no input arguments and returns a tuple with the elements described in the 
 | Index | Name | Type | Description |
 | --- | --- | --- | --- |
 | 0 | success | bool | True in case the frame and motion vectors could be retrieved sucessfully, false otherwise or in case the end of stream is reached. When false, the other tuple elements are set to empty numpy arrays or 0. |
-| 1 | frame | numpy array | Array of dtype uint8 shape (h, w, 3) containing the decoded video frame. w and h are the width and height of this frame in pixels. Channels are in BGR order. If no frame could be decoded an empty numpy ndarray of shape (0, 0, 3) and dtype uint8 is returned. If the VideoCap instance was constructed with decode_frames=False None is returned instead. |
+| 1 | frame | numpy array | Array of dtype uint8 shape (h, w, 3) containing the decoded video frame. w and h are the width and height of this frame in pixels. Channels are in BGR order. If no frame could be decoded an empty numpy ndarray of shape (0, 0, 3) and dtype uint8 is returned. If frame decoding is disabled with set_decode_frames(False) None is returned instead. |
 | 2 | motion vectors | numpy array | Array of dtype int32 and shape (N, 10) containing the N motion vectors of the frame. Each row of the array corresponds to one motion vector. If no motion vectors are present in a frame, e.g. if the frame is an `I` frame an empty numpy array of shape (0, 10) and dtype int32 is returned. The columns of each vector have the following meaning (also refer to [AVMotionVector](https://ffmpeg.org/doxygen/4.1/structAVMotionVector.html) in FFMPEG documentation): <br>- 0: `source`: offset of the reference frame from the current frame. The reference frame is the frame where the motion vector points to and where the corresponding macroblock comes from. If `source < 0`, the reference frame is in the past. For `source > 0` the it is in the future (in display order).<br>- 1: `w`: width of the vector's macroblock.<br>- 2: `h`: height of the vector's macroblock.<br>- 3: `src_x`: x-location (in pixels) where the motion vector points to in the reference frame.<br>- 4: `src_y`: y-location (in pixels) where the motion vector points to in the reference frame.<br>- 5: `dst_x`: x-location of the vector's origin in the current frame (in pixels). Corresponds to the x-center coordinate of the corresponding macroblock.<br>- 6: `dst_y`: y-location of the vector's origin in the current frame (in pixels). Corresponds to the y-center coordinate of the corresponding macroblock.<br>- 7: `motion_x`: Macroblock displacement in x-direction, multiplied by `motion_scale` to become integer. Used to compute fractional value for `src_x` as `src_x = dst_x + motion_x / motion_scale`.<br>- 8: `motion_y`: Macroblock displacement in y-direction, multiplied by `motion_scale` to become integer. Used to compute fractional value for `src_y` as `src_y = dst_y + motion_y / motion_scale`.<br>- 9: `motion_scale`: see definiton of columns 7 and 8. Used to scale up the motion components to integer values. E.g. if `motion_scale = 4`, motion components can be integer values but encode a float with 1/4 pixel precision.<br><br>Note: `src_x` and `src_y` are only in integer resolution. They are contained in the [AVMotionVector](https://ffmpeg.org/doxygen/4.1/structAVMotionVector.html) struct and exported only for the sake of completeness. Use equations in field 7 and 8 to get more accurate fractional values for `src_x` and `src_y`. |
 | 3 | frame_type | string | Unicode string representing the type of frame. Can be `"I"` for a keyframe, `"P"` for a frame with references to only past frames and `"B"` for a frame with references to both past and future frames. A `"?"` string indicates an unknown frame type. |
 
@@ -200,6 +200,14 @@ Convenience function which internally calls first grab() and then retrieve(). It
 ##### Method :: release()
 
 Close a video file or url and release all ressources. Takes no input arguments and returns nothing.
+
+##### Method :: set_decode_frames()
+
+Enable/disable decoding of video frames. May be called anytime, even mid-stream. Returns nothing.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| enable | bool | If True (default) RGB frames are decoded and returned in addition to extracted motion vectors. If False, frame decoding is skipped, yielding much higher extraction througput. |
 
 
 ## C++ API
