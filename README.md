@@ -236,7 +236,7 @@ The frame type is either "P", "B" or "I" and refers to the H.264 encoding mode o
 
 ## About
 
-This software is written by [**Lukas Bommes**](https://lukasbommes.de/).
+This software is maintained by [**Lukas Bommes**](https://lukasbommes.de/).
 It is based on [MV-Tractus](https://github.com/jishnujayakumar/MV-Tractus/tree/master/include) and OpenCV's [videoio module](https://github.com/opencv/opencv/tree/master/modules/videoio).
 
 
