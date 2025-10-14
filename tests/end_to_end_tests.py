@@ -99,9 +99,9 @@ class TestEndToEnd(unittest.TestCase):
                 subprocess.run(f"extract_mvs {rtsp_url} --dump {outdir}", shell=True, check=True)
                 refdir = os.path.join(PROJECT_ROOT, "tests/reference/rtsp")
 
-                self.assertTrue(self.motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
-                self.assertTrue(self.frame_types_valid(outdir, refdir), msg="frame types are invalid")
-                self.assertTrue(self.frames_valid(outdir, refdir), msg="frames are invalid")
+                self.assertTrue(motions_vectors_valid(outdir, refdir), msg="motion vectors are invalid")
+                self.assertTrue(frame_types_valid(outdir, refdir), msg="frame types are invalid")
+                self.assertTrue(frames_valid(outdir, refdir), msg="frames are invalid")
             finally:
                 rtsp_server.terminate()
 
